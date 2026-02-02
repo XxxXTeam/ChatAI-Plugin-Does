@@ -185,7 +185,7 @@ export default withMermaid({
           copyright: 'Copyright © 2024 XxxXTeam Team'
         },
         editLink: {
-          pattern: 'https://github.com/XxxXTeam/chatai-plugin/edit/main/docs/webs/:path',
+          pattern: 'https://github.com/XxxXTeam/ChatAI-Plugin-Does/edit/main/:path',
           text: 'Edit this page on GitHub'
         },
         lastUpdated: {
@@ -343,7 +343,7 @@ export default withMermaid({
     },
 
     editLink: {
-      pattern: 'https://github.com/XxxXTeam/chatai-plugin/edit/main/docs/webs/:path',
+      pattern: 'https://github.com/XxxXTeam/ChatAI-Plugin-Does/edit/main/:path',
       text: '在 GitHub 上编辑此页'
     },
 
