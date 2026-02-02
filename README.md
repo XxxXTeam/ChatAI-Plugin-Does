@@ -57,4 +57,4 @@ docs/webs/
 
 ## 📄 许可证
 
-[MIT License](LICENSE)
+[MIT License](https://github.com/XxxXTeam/ChatAI-Plugin-Does/blob/main/LICENSE)
