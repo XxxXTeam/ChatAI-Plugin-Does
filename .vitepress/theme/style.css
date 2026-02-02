@@ -1,0 +1,418 @@
+
+:root {
+  --vp-c-default-1: var(--vp-c-gray-1);
+  --vp-c-default-2: var(--vp-c-gray-2);
+  --vp-c-default-3: var(--vp-c-gray-3);
+  --vp-c-default-soft: var(--vp-c-gray-soft);
+
+  --vp-c-brand-1: var(--vp-c-indigo-1);
+  --vp-c-brand-2: var(--vp-c-indigo-2);
+  --vp-c-brand-3: var(--vp-c-indigo-3);
+  --vp-c-brand-soft: var(--vp-c-indigo-soft);
+
+  --vp-c-tip-1: var(--vp-c-brand-1);
+  --vp-c-tip-2: var(--vp-c-brand-2);
+  --vp-c-tip-3: var(--vp-c-brand-3);
+  --vp-c-tip-soft: var(--vp-c-brand-soft);
+
+  --vp-c-warning-1: var(--vp-c-yellow-1);
+  --vp-c-warning-2: var(--vp-c-yellow-2);
+  --vp-c-warning-3: var(--vp-c-yellow-3);
+  --vp-c-warning-soft: var(--vp-c-yellow-soft);
+
+  --vp-c-danger-1: var(--vp-c-red-1);
+  --vp-c-danger-2: var(--vp-c-red-2);
+  --vp-c-danger-3: var(--vp-c-red-3);
+  --vp-c-danger-soft: var(--vp-c-red-soft);
+}
+
+:root {
+  --vp-button-brand-border: transparent;
+  --vp-button-brand-text: var(--vp-c-white);
+  --vp-button-brand-bg: var(--vp-c-brand-3);
+  --vp-button-brand-hover-border: transparent;
+  --vp-button-brand-hover-text: var(--vp-c-white);
+  --vp-button-brand-hover-bg: var(--vp-c-brand-2);
+  --vp-button-brand-active-border: transparent;
+  --vp-button-brand-active-text: var(--vp-c-white);
+  --vp-button-brand-active-bg: var(--vp-c-brand-1);
+}
+:root {
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: -webkit-linear-gradient(
+    120deg,
+    #bd34fe 30%,
+    #41d1ff
+  );
+
+  --vp-home-hero-image-background-image: linear-gradient(
+    -45deg,
+    #bd34fe 50%,
+    #47caff 50%
+  );
+  --vp-home-hero-image-filter: blur(44px);
+}
+
+@media (min-width: 640px) {
+  :root {
+    --vp-home-hero-image-filter: blur(56px);
+  }
+}
+
+@media (min-width: 960px) {
+  :root {
+    --vp-home-hero-image-filter: blur(68px);
+  }
+}
+
+:root {
+  --vp-custom-block-tip-border: transparent;
+  --vp-custom-block-tip-text: var(--vp-c-text-1);
+  --vp-custom-block-tip-bg: var(--vp-c-brand-soft);
+  --vp-custom-block-tip-code-bg: var(--vp-c-brand-soft);
+}
+
+/**
+ * Component: Algolia
+ * -------------------------------------------------------------------------- */
+
+.DocSearch {
+  --docsearch-primary-color: var(--vp-c-brand-1) !important;
+}
+
+/**
+ * Component: Medium Zoom
+ * -------------------------------------------------------------------------- */
+
+.medium-zoom-overlay {
+  z-index: 30;
+}
+
+.medium-zoom-image--opened {
+  z-index: 31;
+}
+
+.vp-doc div[class*='language-'] {
+  position: relative;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  padding-top: 2.8rem !important;
+  overflow: hidden;
+  background: #1e1e1e !important;
+}
+.vp-doc div[class*='language-']::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2.8rem;
+  background: #2d2d2d;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  z-index: 2;
+}
+
+/* macOS 红绿灯按钮 */
+.vp-doc div[class*='language-']::after {
+  content: '';
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ff5f57;
+  box-shadow: 
+    20px 0 0 #ffbd2e,
+    40px 0 0 #28ca42;
+  z-index: 3;
+}
+
+/* 语言标签居中显示 */
+.vp-doc div[class*='language-'] > span.lang {
+  position: absolute;
+  top: 0.75rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+  z-index: 3;
+  text-transform: lowercase;
+}
+
+/* 隐藏原有复制按钮，使用自定义按钮 */
+.vp-doc div[class*='language-'] > button.copy {
+  display: none !important;
+}
+
+/* 代码区域 */
+.vp-doc div[class*='language-'] > pre {
+  background: #1e1e1e !important;
+  margin: 0;
+}
+
+.vp-doc div[class*='language-'] code {
+  font-family: 'JetBrains Mono', 'Fira Code', Consolas, Monaco, 'Andale Mono', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 代码高亮优化 - one-dark-pro 风格 */
+.vp-doc div[class*='language-'] .shiki,
+.vp-doc div[class*='language-'] .shiki span {
+  color: var(--shiki-dark, inherit);
+}
+
+/* 关键字加粗 */
+.vp-doc div[class*='language-'] .token.keyword {
+  font-weight: 500;
+}
+
+/* 注释斜体 */
+.vp-doc div[class*='language-'] .token.comment {
+  font-style: italic;
+  opacity: 0.7;
+}
+
+/* 选中行高亮 */
+.vp-doc div[class*='language-'] .line.highlighted {
+  background-color: rgba(97, 175, 239, 0.15);
+  border-left: 3px solid #61afef;
+  margin-left: -3px;
+  padding-left: 3px;
+}
+
+/* diff 样式 */
+.vp-doc div[class*='language-'] .line.diff.add {
+  background-color: rgba(152, 195, 121, 0.2);
+}
+
+.vp-doc div[class*='language-'] .line.diff.remove {
+  background-color: rgba(224, 108, 117, 0.2);
+}
+
+/* 行号容器 */
+.vp-doc div[class*='language-'].line-numbers-mode {
+  padding-left: 0 !important;
+}
+
+.vp-doc div[class*='language-'].line-numbers-mode .line-numbers-wrapper {
+  position: absolute;
+  top: 2.8rem;
+  left: 0;
+  width: auto;
+  min-width: 1.2rem;
+  padding: 0.6rem 0.5rem;
+  text-align: right;
+  background: #252525;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.vp-doc div[class*='language-'].line-numbers-mode pre {
+  padding-left: 2.5rem !important;
+}
+
+/* 代码块内边距和动画 */
+.vp-doc div[class*='language-'] pre {
+  padding: 0.6rem 1rem !important;
+  margin: 0;
+  transition: max-height 0.3s ease-out, padding 0.3s ease-out, opacity 0.2s ease-out;
+}
+
+.vp-doc div[class*='language-'] pre[style*="max-height: 0"] {
+  opacity: 0;
+}
+
+.vp-doc div[class*='language-'] .line-numbers-wrapper {
+  transition: opacity 0.3s ease-out, max-height 0.3s ease-out;
+}
+
+/* 代码组 blocks 容器动画 */
+.vp-doc .vp-code-group .blocks {
+  transition: max-height 0.3s ease-out;
+  will-change: max-height;
+}
+
+/* 性能优化 - GPU 加速 */
+.vp-doc div[class*='language-'] {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.vp-doc div[class*='language-'] pre {
+  will-change: max-height, opacity;
+}
+
+/* 独立代码块工具栏 */
+.vp-doc div[class*='language-'] .code-toolbar {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.75rem;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 按钮基础样式 */
+.code-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.code-btn:hover {
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* 代码组样式 */
+.vp-doc .vp-code-group {
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.vp-doc .vp-code-group .tabs {
+  background: var(--vp-c-bg-soft);
+  padding: 0;
+  padding-right: 60px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--vp-c-divider);
+  position: relative;
+}
+
+.vp-doc .vp-code-group .tabs label {
+  color: var(--vp-c-text-2);
+  padding: 4px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.vp-doc .vp-code-group .tabs label.active {
+  color: var(--vp-c-brand-1);
+}
+
+/* 代码组工具栏 */
+.vp-doc .vp-code-group .code-group-toolbar {
+  position: absolute !important;
+  right: 8px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  display: flex !important;
+  align-items: center;
+  gap: 4px;
+  z-index: 10;
+}
+
+.vp-doc .vp-code-group .code-group-toolbar .code-btn {
+  color: var(--vp-c-text-2);
+  padding: 4px;
+}
+
+.vp-doc .vp-code-group .code-group-toolbar .code-btn:hover {
+  color: var(--vp-c-text-1);
+  background: var(--vp-c-default-soft);
+}
+
+.vp-doc .vp-code-group div[class*='language-'] {
+  border-radius: 0 0 10px 10px;
+  margin-top: 0;
+}
+
+/**
+ * Component: Image Enhancements
+ * -------------------------------------------------------------------------- */
+
+.vp-doc img {
+  border-radius: 8px;
+  cursor: zoom-in;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.vp-doc img:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/**
+ * Component: Table Enhancements
+ * -------------------------------------------------------------------------- */
+
+.vp-doc table {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+.vp-doc tr:hover {
+  background-color: var(--vp-c-bg-soft);
+}
+
+/**
+ * Component: Custom Badges
+ * -------------------------------------------------------------------------- */
+
+.badge-new {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #fff;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  margin-left: 6px;
+}
+
+.badge-beta {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #fff;
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  border-radius: 12px;
+  margin-left: 6px;
+}
+
+.badge-deprecated {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #fff;
+  background: linear-gradient(135deg, #868f96 0%, #596164 100%);
+  border-radius: 12px;
+  margin-left: 6px;
+}
+
+/**
+ * Component: Smooth Scrolling
+ * -------------------------------------------------------------------------- */
+
+html {
+  scroll-behavior: smooth;
+}
+
+/**
+ * Component: Selection Highlight
+ * -------------------------------------------------------------------------- */
+
+::selection {
+  background: var(--vp-c-brand-soft);
+  color: var(--vp-c-brand-1);
+}
+

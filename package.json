@@ -1,0 +1,23 @@
+{
+  "name": "chatai-docs",
+  "version": "1.0.0",
+  "description": "ChatAI Plugin 帮助文档",
+  "scripts": {
+    "dev": "vitepress dev",
+    "build": "vitepress build",
+    "preview": "vitepress preview"
+  },
+  "dependencies": {
+    "mermaid": "^11.12.2",
+    "netlify-cli": "^23.14.0",
+    "vitepress": "^1.6.4",
+    "vitepress-plugin-mermaid": "^2.0.17",
+    "vue": "^3.5.27"
+  },
+  "devDependencies": {
+    "@shikijs/transformers": "^3.22.0",
+    "medium-zoom": "^1.1.0",
+    "mermaid": "^11.12.2",
+    "vitepress-plugin-mermaid": "^2.0.17"
+  }
+}
