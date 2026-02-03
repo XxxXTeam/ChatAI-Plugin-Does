@@ -97,7 +97,9 @@ export default withMermaid({
                 { text: 'Multi-Channel', link: '/en/guide/channels' },
                 { text: 'Presets & Personas', link: '/en/guide/presets' },
                 { text: 'Triggers', link: '/en/guide/triggers' },
-                { text: 'MCP Tools', link: '/en/guide/mcp' }
+                { text: 'MCP Tools', link: '/en/guide/mcp' },
+                { text: 'Galgame', link: '/en/guide/galgame' },
+                { text: 'Commands', link: '/en/guide/commands' }
               ]
             },
             {
@@ -249,7 +251,9 @@ export default withMermaid({
             { text: '多渠道配置', link: '/guide/channels' },
             { text: '预设与人格', link: '/guide/presets' },
             { text: '触发方式', link: '/guide/triggers' },
-            { text: 'MCP 工具', link: '/guide/mcp' }
+            { text: 'MCP 工具', link: '/guide/mcp' },
+            { text: 'Galgame 游戏', link: '/guide/galgame' },
+            { text: '命令列表', link: '/guide/commands' }
           ]
         },
         {
