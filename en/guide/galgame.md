@@ -15,7 +15,7 @@ The Galgame module provides a visual novel-like dialogue game experience with af
 ### Start New Game
 
 ```bash
-#开始游戏
+#游戏开始
 ```
 
 After sending the command, AI will randomly generate a character and scene to begin your Galgame adventure.
@@ -23,7 +23,7 @@ After sending the command, AI will randomly generate a character and scene to be
 ### Continue Game
 
 ```bash
-#继续游戏
+#游戏继续
 ```
 
 Resume your previous game progress and continue interacting with the character.
@@ -31,7 +31,7 @@ Resume your previous game progress and continue interacting with the character.
 ### End Game
 
 ```bash
-#结束游戏
+#游戏结束
 ```
 
 End current game session (progress is auto-saved).
@@ -101,9 +101,9 @@ Different affection levels affect:
 
 | Command | Description |
 |---------|-------------|
-| `#开始游戏` | Start new Galgame |
-| `#继续游戏` | Continue previous game |
-| `#结束游戏` | End current game |
+| `#游戏开始` | Start new Galgame |
+| `#游戏继续` | Continue previous game |
+| `#游戏结束` | End current game |
 | `#游戏状态` | View game status |
 | `#游戏存档` | View save list |
 

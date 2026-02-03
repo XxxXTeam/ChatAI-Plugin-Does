@@ -57,9 +57,9 @@ AI-powered Galgame visual novel adventure.
 
 | Command | Description | Example |
 |:--------|:------------|:--------|
-| `#开始游戏` | Start new Galgame adventure | `#开始游戏` |
-| `#继续游戏` | Continue previous game | `#继续游戏` |
-| `#结束游戏` | End current game session | `#结束游戏` |
+| `#游戏开始` | Start new Galgame adventure | `#游戏开始` |
+| `#游戏继续` | Continue previous game | `#游戏继续` |
+| `#游戏结束` | End current game session | `#游戏结束` |
 | `#游戏存档` | View game saves | `#游戏存档` |
 | `#游戏状态` | View game status | `#游戏状态` |
 
