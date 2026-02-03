@@ -1,10 +1,13 @@
 import { defineConfig } from 'vitepress'
 import { withMermaid } from 'vitepress-plugin-mermaid'
 
+// GitHub Pages 使用仓库名作为 base，其他平台使用 /
+const base = process.env.GITHUB_ACTIONS ? '/ChatAI-Plugin-Does/' : '/'
+
 export default withMermaid({
   title: "ChatAI Plugin Does",
   description: "Yunzai-Bot AI Chat Plugin Documentation",
-  base: '/ChatAI-Plugin-Does/',
+  base,
   lastUpdated: true,
   outDir: './dist',
   markdown: {
