@@ -4,6 +4,7 @@ import { withMermaid } from 'vitepress-plugin-mermaid'
 export default withMermaid({
   title: "ChatAI Plugin Does",
   description: "Yunzai-Bot AI Chat Plugin Documentation",
+  base: '/ChatAI-Plugin-Does/',
   lastUpdated: true,
   outDir: './dist',
   markdown: {
