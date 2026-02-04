@@ -49,7 +49,34 @@ export default withMermaid({
   
   head: [
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' }],
-    ['script', { async: '', id: 'LA_COLLECT', charset: 'UTF-8', src: 'https://sdk.51.la/js-sdk-pro.min.js' }],
+    // 51.la 统计 - 使用官方推荐的嵌入方式
+    ['script', {}, `
+      !function(p){"use strict";!function(t){var s=window,e=document,i=p,c="".concat("https:"===e.location.protocol?"https://":"http://","sdk.51.la/js-sdk-pro.min.js"),n=e.createElement("script"),r=e.getElementsByTagName("script")[0];n.type="text/javascript",n.setAttribute("charset","UTF-8"),n.async=!0,n.src=c,n.id="LA_COLLECT",i.d=n;var o=function(){s.LA.ids.push(i)};s.LA?s.LA.ids&&o():(s.LA=p,s.LA.ids=[],o()),r.parentNode.insertBefore(n,r)}()}({id:"3OtXvS8im2uEkg2s",ck:"3OtXvS8im2uEkg2s",hashMode:true,screenRecord:true});
+    `],
+    // 51.la 访问统计挂件 - 使用官方嵌入代码
+    ['script', { id: 'LA-DATA-WIDGET', crossorigin: 'anonymous', charset: 'UTF-8', src: 'https://v6-widget.51.la/v6/3OtXvS8im2uEkg2s/quote.js?theme=0&f=12' }],
+    // 灵雀性能监控
+    ['script', {}, `
+      !(function(c,i,e,b){var h=i.createElement("script");var f=i.getElementsByTagName("script")[0];h.type="text/javascript";h.crossorigin=true;h.onload=function(){new c[b]["Monitor"]().init({id:"3OugNPmmWozOTrED",sendSuspicious:true,sendSpaPv:true});};f.parentNode.insertBefore(h,f);h.src=e;})(window,document,"https://sdk.51.la/perf/js-sdk-perf.min.js","LingQue");
+    `],
+    ['script', {}, `
+      (function(){
+        var loadWidget = function() {
+          if (document.getElementById('LA-DATA-WIDGET-CONTAINER')) return;
+          var s = document.createElement('script');
+          s.id = 'LA-DATA-WIDGET';
+          s.crossOrigin = 'anonymous';
+          s.charset = 'UTF-8';
+          s.src = 'https://v6-widget.51.la/v6/3OtXvS8im2uEkg2s/quote.js?theme=0&f=12&ref=' + encodeURIComponent(location.href);
+          document.body.appendChild(s);
+        };
+        if (document.readyState === 'complete') {
+          setTimeout(loadWidget, 500);
+        } else {
+          window.addEventListener('load', function(){ setTimeout(loadWidget, 500); });
+        }
+      })();
+    `],
     ['script', {}, `
       (function(){
         var initLA = function() {
@@ -63,45 +90,6 @@ export default withMermaid({
           initLA();
         } else {
           window.addEventListener('load', initLA);
-        }
-      })();
-    `],
-    ['script', {}, `
-      (function(){
-        var loadWidget = function() {
-          if (document.getElementById('LA-DATA-WIDGET-CONTAINER')) return;
-          var s = document.createElement('script');
-          s.id = 'LA-DATA-WIDGET';
-          s.crossOrigin = 'anonymous';
-          s.charset = 'UTF-8';
-          s.src = 'https://v6-widget.51.la/v6/3OtXvS8im2uEkg2s/quote.js?theme=0&f=14&ref=' + encodeURIComponent(location.href);
-          document.body.appendChild(s);
-        };
-        if (document.readyState === 'complete') {
-          setTimeout(loadWidget, 500);
-        } else {
-          window.addEventListener('load', function(){ setTimeout(loadWidget, 500); });
-        }
-      })();
-    `],
-    ['script', {}, `
-      (function(){
-        var loadPerf = function() {
-          var h = document.createElement("script");
-          h.type = "text/javascript";
-          h.crossOrigin = "anonymous";
-          h.src = "https://sdk.51.la/perf/js-sdk-perf.min.js";
-          h.onload = function(){
-            if (window.LingQue && window.LingQue.Monitor) {
-              new window.LingQue.Monitor().init({id:"3OugNPmmWozOTrED",sendSuspicious:true,sendSpaPv:true});
-            }
-          };
-          document.head.appendChild(h);
-        };
-        if (document.readyState === 'complete') {
-          loadPerf();
-        } else {
-          window.addEventListener('load', loadPerf);
         }
       })();
     `],
