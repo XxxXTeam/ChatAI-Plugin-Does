@@ -49,13 +49,63 @@ export default withMermaid({
   
   head: [
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' }],
+    ['script', { async: '', id: 'LA_COLLECT', charset: 'UTF-8', src: 'https://sdk.51.la/js-sdk-pro.min.js' }],
     ['script', {}, `
-      !function(p){"use strict";!function(t){var s=window,e=document,i=p,c="".concat("https:"===e.location.protocol?"https://":"http://","sdk.51.la/js-sdk-pro.min.js"),n=e.createElement("script"),r=e.getElementsByTagName("script")[0];n.type="text/javascript",n.setAttribute("charset","UTF-8"),n.async=!0,n.src=c,n.id="LA_COLLECT",i.d=n;var o=function(){s.LA.ids.push(i)};s.LA?s.LA.ids&&o():(s.LA=p,s.LA.ids=[],o()),r.parentNode.insertBefore(n,r)}()}({id:"3OtXvS8im2uEkg2s",ck:"3OtXvS8im2uEkg2s",hashMode:true,screenRecord:true});
+      (function(){
+        var initLA = function() {
+          if (window.LA && window.LA.init) {
+            window.LA.init({id:"3OtXvS8im2uEkg2s",ck:"3OtXvS8im2uEkg2s",hashMode:true,screenRecord:true});
+          } else {
+            setTimeout(initLA, 100);
+          }
+        };
+        if (document.readyState === 'complete') {
+          initLA();
+        } else {
+          window.addEventListener('load', initLA);
+        }
+      })();
     `],
-    ['script', { id: 'LA-DATA-WIDGET', crossorigin: 'anonymous', charset: 'UTF-8', src: 'https://v6-widget.51.la/v6/3OtXvS8im2uEkg2s/quote.js?theme=0&f=14' }],
+    ['script', {}, `
+      (function(){
+        var loadWidget = function() {
+          if (document.getElementById('LA-DATA-WIDGET-CONTAINER')) return;
+          var s = document.createElement('script');
+          s.id = 'LA-DATA-WIDGET';
+          s.crossOrigin = 'anonymous';
+          s.charset = 'UTF-8';
+          s.src = 'https://v6-widget.51.la/v6/3OtXvS8im2uEkg2s/quote.js?theme=0&f=14&ref=' + encodeURIComponent(location.href);
+          document.body.appendChild(s);
+        };
+        if (document.readyState === 'complete') {
+          setTimeout(loadWidget, 500);
+        } else {
+          window.addEventListener('load', function(){ setTimeout(loadWidget, 500); });
+        }
+      })();
+    `],
+    ['script', {}, `
+      (function(){
+        var loadPerf = function() {
+          var h = document.createElement("script");
+          h.type = "text/javascript";
+          h.crossOrigin = "anonymous";
+          h.src = "https://sdk.51.la/perf/js-sdk-perf.min.js";
+          h.onload = function(){
+            if (window.LingQue && window.LingQue.Monitor) {
+              new window.LingQue.Monitor().init({id:"3OugNPmmWozOTrED",sendSuspicious:true,sendSpaPv:true});
+            }
+          };
+          document.head.appendChild(h);
+        };
+        if (document.readyState === 'complete') {
+          loadPerf();
+        } else {
+          window.addEventListener('load', loadPerf);
+        }
+      })();
+    `],
   ],
-
-  // 多语言配置
   locales: {
     root: {
       label: '简体中文',
@@ -256,6 +306,8 @@ export default withMermaid({
             { text: '预设与人格', link: '/guide/presets' },
             { text: '触发方式', link: '/guide/triggers' },
             { text: 'MCP 工具', link: '/guide/mcp' },
+            { text: 'Agent 模式', link: '/guide/agent' },
+            { text: '记忆系统', link: '/guide/memory' },
             { text: 'Galgame 游戏', link: '/guide/galgame' },
             { text: '命令列表', link: '/guide/commands' }
           ]
@@ -288,7 +340,8 @@ export default withMermaid({
           text: '高级功能',
           items: [
             { text: '功能配置', link: '/config/features' },
-            { text: '伪人配置', link: '/config/bym' }
+            { text: '伪人配置', link: '/config/bym' },
+            { text: '高级配置', link: '/config/advanced' }
           ]
         }
       ],
@@ -310,7 +363,8 @@ export default withMermaid({
             { text: 'LLM 适配器', link: '/architecture/adapters' },
             { text: '聊天服务', link: '/architecture/chat-service' },
             { text: 'Web 服务', link: '/architecture/web-server' },
-            { text: '存储系统', link: '/architecture/storage' }
+            { text: '存储系统', link: '/architecture/storage' },
+            { text: '记忆系统', link: '/architecture/memory' }
           ]
         }
       ],
@@ -323,7 +377,10 @@ export default withMermaid({
             { text: '配置接口', link: '/api/config' },
             { text: '工具接口', link: '/api/tools' },
             { text: 'MCP 接口', link: '/api/mcp' },
-            { text: '聊天接口', link: '/api/chat' }
+            { text: '聊天接口', link: '/api/chat' },
+            { text: '群组接口', link: '/api/groups' },
+            { text: '预设接口', link: '/api/presets' },
+            { text: '统计接口', link: '/api/stats' }
           ]
         }
       ],
@@ -334,6 +391,7 @@ export default withMermaid({
             { text: '工具开发概述', link: '/tools/' },
             { text: '内置工具', link: '/tools/builtin' },
             { text: '自定义 JS 工具', link: '/tools/custom-js' },
+            { text: '高级开发', link: '/tools/advanced' },
             { text: 'MCP 服务器', link: '/tools/mcp-server' },
             { text: '安全与权限', link: '/tools/security' }
           ]

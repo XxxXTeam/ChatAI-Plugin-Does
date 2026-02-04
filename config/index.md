@@ -57,6 +57,7 @@ plugins/chatai-plugin/config/config.yaml
 | **前端配置** | Web 管理面板定制 | [前端配置](./frontend) | ⭐ |
 | **功能配置** | 群总结、画像、事件响应 | [功能配置](./features) | ⭐⭐ |
 | **伪人配置** | 伪人模式、主动聊天 | [伪人配置](./bym) | ⭐ |
+| **高级配置** | 环境变量、负载均衡、安全设置 | [高级配置](./advanced) | ⭐⭐⭐ |
 
 ## 配置文件结构 {#config-structure}
 

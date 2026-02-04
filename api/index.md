@@ -40,13 +40,13 @@ graph TB
 | **认证** | `/api/auth` | 登录、验证、Token 管理 | [查看](./auth) |
 | **配置** | `/api/config` | 配置读取与更新 | [查看](./config) |
 | **渠道** | `/api/channels` | 渠道 CRUD、测试、模型列表 | - |
-| **对话** | `/api/conversations` | 对话历史管理 | - |
-| **预设** | `/api/presets` | 预设 CRUD | - |
+| **对话** | `/api/conversations` | 对话历史管理 | [查看](./chat) |
+| **预设** | `/api/presets` | 预设 CRUD | [查看](./presets) |
 | **工具** | `/api/tools` | 工具管理与日志 | [查看](./tools) |
 | **MCP** | `/api/mcp` | MCP 服务器管理 | [查看](./mcp) |
 | **技能** | `/api/skills` | 技能代理接口 | - |
-| **群管理** | `/api/group-admin` | 群组独立配置 | - |
-| **系统** | `/api/system` | 系统状态与统计 | - |
+| **群管理** | `/api/group-admin` | 群组独立配置 | [查看](./groups) |
+| **系统** | `/api/system` | 系统状态与统计 | [查看](./stats) |
 
 ## 认证 {#authentication}
 
