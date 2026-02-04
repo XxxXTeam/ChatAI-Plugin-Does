@@ -59,40 +59,6 @@ export default withMermaid({
     ['script', {}, `
       !(function(c,i,e,b){var h=i.createElement("script");var f=i.getElementsByTagName("script")[0];h.type="text/javascript";h.crossorigin=true;h.onload=function(){new c[b]["Monitor"]().init({id:"3OugNPmmWozOTrED",sendSuspicious:true,sendSpaPv:true});};f.parentNode.insertBefore(h,f);h.src=e;})(window,document,"https://sdk.51.la/perf/js-sdk-perf.min.js","LingQue");
     `],
-    ['script', {}, `
-      (function(){
-        var loadWidget = function() {
-          if (document.getElementById('LA-DATA-WIDGET-CONTAINER')) return;
-          var s = document.createElement('script');
-          s.id = 'LA-DATA-WIDGET';
-          s.crossOrigin = 'anonymous';
-          s.charset = 'UTF-8';
-          s.src = 'https://v6-widget.51.la/v6/3OtXvS8im2uEkg2s/quote.js?theme=0&f=12&ref=' + encodeURIComponent(location.href);
-          document.body.appendChild(s);
-        };
-        if (document.readyState === 'complete') {
-          setTimeout(loadWidget, 500);
-        } else {
-          window.addEventListener('load', function(){ setTimeout(loadWidget, 500); });
-        }
-      })();
-    `],
-    ['script', {}, `
-      (function(){
-        var initLA = function() {
-          if (window.LA && window.LA.init) {
-            window.LA.init({id:"3OtXvS8im2uEkg2s",ck:"3OtXvS8im2uEkg2s",hashMode:true,screenRecord:true});
-          } else {
-            setTimeout(initLA, 100);
-          }
-        };
-        if (document.readyState === 'complete') {
-          initLA();
-        } else {
-          window.addEventListener('load', initLA);
-        }
-      })();
-    `],
   ],
   locales: {
     root: {
