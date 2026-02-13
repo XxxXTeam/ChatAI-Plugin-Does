@@ -16,9 +16,17 @@
 
 **解决步骤：**
 
-**Step 1** - 在 Yunzai 根目录重建
+**Step 1** - 运行 pnpm 周期脚本（推荐）
+
+在 **Yunzai 根目录** 执行：
 ```bash
-pnpm rebuild better-sqlite3
+pnpm approve-builds
+```
+
+运行周期脚本后，需要删除依赖和锁文件重新安装：
+```bash
+rm -rf node_modules pnpm-lock.yaml
+pnpm install
 ```
 
 **Step 2** - 如果仍失败，安装编译工具
@@ -28,7 +36,9 @@ pnpm rebuild better-sqlite3
 # 安装 Visual Studio Build Tools
 # 下载: https://visualstudio.microsoft.com/visual-cpp-build-tools/
 # 安装时选择 "使用 C++ 的桌面开发"
-npm install -g windows-build-tools
+# 安装 Visual Studio Build Tools
+# https://visualstudio.microsoft.com/visual-cpp-build-tools/
+# 勾选 "使用 C++ 的桌面开发"
 ```
 
 ```bash [Linux (Debian/Ubuntu)]
@@ -46,11 +56,17 @@ xcode-select --install
 ```
 :::
 
-**Step 3** - 完全重装
+**Step 3** - 进入依赖目录手动构建
 ```bash
-rm -rf node_modules
-pnpm install
-pnpm rebuild better-sqlite3
+# 找到 better-sqlite3 目录（路径可能因包管理器不同而异）
+cd node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3
+# 或
+cd node_modules/better-sqlite3
+
+# 运行构建脚本
+npm run build-release
+# 或使用 node-gyp 直接构建
+npx node-gyp rebuild
 ```
 
 ::: details 其他可能的解决方案
@@ -180,8 +196,10 @@ web:
 **解决步骤：**
 
 ```bash
-# 1. 重建 better-sqlite3
-pnpm rebuild better-sqlite3
+# 1. 运行周期脚本并重新安装依赖
+pnpm approve-builds
+rm -rf node_modules pnpm-lock.yaml
+pnpm install
 
 # 2. 检查目录权限（Linux/macOS）
 chmod 755 plugins/chatgpt-plugin/data
@@ -505,7 +523,9 @@ flowchart TD
 cd plugins/chatgpt-plugin
 git pull
 pnpm install
-pnpm rebuild better-sqlite3  # 如涉及原生模块
+pnpm approve-builds  # 如涉及原生模块
+rm -rf node_modules pnpm-lock.yaml
+pnpm install
 ```
 
 ## 获取帮助 {#get-help}
