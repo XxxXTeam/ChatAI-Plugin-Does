@@ -1,0 +1,15 @@
+{
+  "name": "chatai-docs-assistant",
+  "version": "1.1.0",
+  "type": "module",
+  "description": "ChatAI Plugin 文档 AI 问答助手 - Cloudflare Worker",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "npm run build-knowledge && wrangler deploy",
+    "build-knowledge": "node scripts/build-knowledge.js"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}

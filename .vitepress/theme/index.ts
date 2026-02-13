@@ -7,6 +7,7 @@ import mediumZoom from 'medium-zoom'
 import './style.css'
 import VisitorStats from './VisitorStats.vue'
 import MermaidEnhancer from './MermaidEnhancer.vue'
+import AiChat from './AiChat.vue'
 
 const enhanceCodeBlocks = () => {
   nextTick(() => {
@@ -137,7 +138,8 @@ export default {
   extends: DefaultTheme,
   Layout: () => {
     return h(DefaultTheme.Layout, null, {
-      'doc-after': () => h(MermaidEnhancer)
+      'doc-after': () => h(MermaidEnhancer),
+      'layout-bottom': () => h(AiChat)
     })
   },
   enhanceApp({ app, router, siteData }) {

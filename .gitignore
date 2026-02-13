@@ -4,3 +4,7 @@ node_modules
 *.log
 .DS_Store
 dist
+.env
+.env.*
+workers/ai-chat/.dev.vars
+workers/ai-chat/data/
