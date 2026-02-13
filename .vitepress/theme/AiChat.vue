@@ -42,6 +42,27 @@ function scrollToBottom() {
   })
 }
 
+/**
+ * 流式渲染节流：用非响应式缓冲区积累 delta，通过 requestAnimationFrame 批量更新 UI
+ */
+let streamBuffer = ''
+let rafId = null
+
+function flushStream(msgIndex) {
+  if (!streamBuffer && !rafId) return
+  const msg = messages.value[msgIndex]
+  if (!msg) return
+  msg.content = streamBuffer
+  msg.renderedHtml = renderMarkdown(streamBuffer)
+  scrollToBottom()
+  rafId = null
+}
+
+function scheduleFlush(msgIndex) {
+  if (rafId) return
+  rafId = requestAnimationFrame(() => flushStream(msgIndex))
+}
+
 async function sendMessage(text) {
   const question = (text || inputText.value).trim()
   if (!question || isLoading.value) return
@@ -52,8 +73,9 @@ async function sendMessage(text) {
 
   isLoading.value = true
   const aiMessageIndex = messages.value.length
-  messages.value.push({ role: 'assistant', content: '', loading: true })
+  messages.value.push({ role: 'assistant', content: '', renderedHtml: '', loading: true })
   scrollToBottom()
+  streamBuffer = ''
 
   try {
     const response = await fetch(API_URL, {
@@ -87,20 +109,28 @@ async function sendMessage(text) {
           const parsed = JSON.parse(data)
           const delta = parsed.choices?.[0]?.delta?.content
           if (delta) {
-            messages.value[aiMessageIndex].content += delta
-            scrollToBottom()
+            /* 累积到非响应式缓冲区，节流更新 */
+            streamBuffer += delta
+            scheduleFlush(aiMessageIndex)
           }
         } catch { /* 忽略解析错误 */ }
       }
     }
 
+    /* 流结束，确保最后一次刷新 */
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null }
+    flushStream(aiMessageIndex)
+
     if (!messages.value[aiMessageIndex].content) {
       messages.value[aiMessageIndex].content = '抱歉，未能获取到回答，请稍后重试。'
+      messages.value[aiMessageIndex].renderedHtml = messages.value[aiMessageIndex].content
     }
   } catch (err) {
     console.error('[AI Chat] 错误:', err)
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null }
     messages.value[aiMessageIndex].loading = false
     messages.value[aiMessageIndex].content = `出错了：${err.message}`
+    messages.value[aiMessageIndex].renderedHtml = `出错了：${err.message}`
     messages.value[aiMessageIndex].error = true
   } finally {
     isLoading.value = false
@@ -145,8 +175,57 @@ async function copyMessage(idx) {
   } catch { /* 复制失败静默处理 */ }
 }
 
+/* ==================== KaTeX 动态加载 ==================== */
+let katexReady = false
+
+/**
+ * 通过 script 标签加载 KaTeX（比 import() 更稳定）
+ */
+function loadKaTeX() {
+  if (katexReady || typeof window === 'undefined') return
+  if (window.katex) { katexReady = true; return }
+
+  /* 加载 CSS */
+  if (!document.querySelector('link[href*="katex"]')) {
+    const link = document.createElement('link')
+    link.rel = 'stylesheet'
+    link.href = 'https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css'
+    link.crossOrigin = 'anonymous'
+    document.head.appendChild(link)
+  }
+
+  /* 加载 JS */
+  if (!document.querySelector('script[src*="katex"]')) {
+    const script = document.createElement('script')
+    script.src = 'https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js'
+    script.crossOrigin = 'anonymous'
+    script.onload = () => { katexReady = true }
+    script.onerror = () => console.warn('[AI Chat] KaTeX 加载失败')
+    document.head.appendChild(script)
+  }
+}
+
+/**
+ * 渲染 LaTeX 公式为 HTML（KaTeX 未加载时回退为代码显示）
+ */
+function renderLatex(latex, displayMode = false) {
+  if (!katexReady || !window.katex) {
+    return `<code class="ai-inline-code">${escapeHtml(latex)}</code>`
+  }
+  try {
+    return window.katex.renderToString(latex, {
+      displayMode,
+      throwOnError: false,
+      trust: false,
+    })
+  } catch {
+    return `<code class="ai-inline-code">${escapeHtml(latex)}</code>`
+  }
+}
+
 onMounted(() => {
   document.addEventListener('keydown', handleGlobalKeydown)
+  loadKaTeX()
 })
 
 onUnmounted(() => {
@@ -156,15 +235,67 @@ onUnmounted(() => {
 /* ==================== Markdown 渲染 ==================== */
 
 /**
- * 内联元素渲染：代码、加粗、斜体、链接、图片
+ * HTML 特殊字符转义
+ */
+function escapeHtml(text) {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+/**
+ * 内联元素渲染：行内代码、数学公式、加粗、斜体、删除线、高亮、上下标、链接、图片
+ * 渲染顺序：先保护不可解析区域（代码、公式），再处理格式化
  */
 function renderInline(text) {
-  return text
-    .replace(/`([^`]+)`/g, '<code class="ai-inline-code">$1</code>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%">')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+  if (!text) return ''
+
+  const slots = []
+  const placeholder = (html) => {
+    slots.push(html)
+    return `%%SLOT_${slots.length - 1}%%`
+  }
+
+  /* 1. 保护行内代码 */
+  let safe = text.replace(/`([^`]+)`/g, (_, code) =>
+    placeholder(`<code class="ai-inline-code">${escapeHtml(code)}</code>`)
+  )
+
+  /* 2. 保护行内数学公式 $...$ （避免与 * 等冲突） */
+  safe = safe.replace(/\$([^$\n]+?)\$/g, (_, latex) =>
+    placeholder(renderLatex(latex.trim(), false))
+  )
+
+  /* 3. \( ... \) 行内公式（LaTeX 风格） */
+  safe = safe.replace(/\\\((.+?)\\\)/g, (_, latex) =>
+    placeholder(renderLatex(latex.trim(), false))
+  )
+
+  /* 图片（必须在链接之前） */
+  safe = safe.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" class="ai-img">')
+  /* 链接 */
+  safe = safe.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+  /* 加粗+斜体 ***text*** */
+  safe = safe.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+  /* 加粗 */
+  safe = safe.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+  /* 斜体 */
+  safe = safe.replace(/\*(.+?)\*/g, '<em>$1</em>')
+  /* 删除线 */
+  safe = safe.replace(/~~(.+?)~~/g, '<del>$1</del>')
+  /* 高亮 ==text== */
+  safe = safe.replace(/==(.+?)==/g, '<mark class="ai-highlight">$1</mark>')
+  /* 上标 ^text^ */
+  safe = safe.replace(/\^([^^]+?)\^/g, '<sup>$1</sup>')
+  /* 下标 ~text~ （单个 ~ 非删除线） */
+  safe = safe.replace(/~([^~]+?)~/g, '<sub>$1</sub>')
+
+  /* 还原保护区域 */
+  safe = safe.replace(/%%SLOT_(\d+)%%/g, (_, idx) => slots[Number(idx)])
+
+  return safe
 }
 
 /**
@@ -173,12 +304,73 @@ function renderInline(text) {
 function parseTableRow(line, tag = 'td') {
   const cells = line.split('|').slice(1, -1)
   if (!cells.length) return ''
-  const inner = cells.map(c => `<${tag}>${renderInline(c.trim())}</${tag}>`).join('')
-  return `<tr>${inner}</tr>`
+  return '<tr>' + cells.map(c => `<${tag}>${renderInline(c.trim())}</${tag}>`).join('') + '</tr>'
 }
 
 /**
- * 完整 Markdown 渲染（按块解析）
+ * 判断是否为表格分隔行（|---|---|）
+ */
+function isTableSeparator(line) {
+  return /^\|[\s:]*-{2,}[\s:]*(\|[\s:]*-{2,}[\s:]*)*\|$/.test(line.trim())
+}
+
+/**
+ * 解析列表项（支持嵌套、任务列表）
+ * 返回 { items, endIndex }
+ */
+function parseListItems(lines, startIdx, baseIndent, ordered) {
+  const items = []
+  let i = startIdx
+  const listPattern = ordered ? /^(\s*)\d+\.\s+(.*)/ : /^(\s*)([-*])\s+(.*)/
+
+  while (i < lines.length) {
+    const match = lines[i].match(listPattern)
+    if (!match) break
+
+    const indent = match[1].length
+    if (indent < baseIndent) break
+    if (indent > baseIndent) {
+      /* 嵌套列表：递归解析 */
+      const isSubOrdered = /^\s*\d+\.\s+/.test(lines[i])
+      const sub = parseListItems(lines, i, indent, isSubOrdered)
+      const subTag = isSubOrdered ? 'ol' : 'ul'
+      if (items.length > 0) {
+        items[items.length - 1].sub = `<${subTag}>${sub.items.map(s => s.html).join('')}</${subTag}>`
+      }
+      i = sub.endIndex
+      continue
+    }
+
+    /* 当前缩进级别的列表项 */
+    const content = ordered ? match[2] : match[3]
+
+    /* 任务列表 - [ ] / - [x] */
+    const taskMatch = content.match(/^\[([ xX])\]\s*(.*)/)
+    let itemHtml
+    if (taskMatch && !ordered) {
+      const checked = taskMatch[1].toLowerCase() === 'x'
+      itemHtml = `<li class="ai-task-item"><span class="ai-checkbox ${checked ? 'is-checked' : ''}">${checked ? '✓' : ''}</span>${renderInline(taskMatch[2])}</li>`
+    } else {
+      itemHtml = `<li>${renderInline(content)}</li>`
+    }
+
+    items.push({ html: itemHtml, sub: '' })
+    i++
+  }
+
+  /* 把子列表拼接到父项的 </li> 之前 */
+  const finalItems = items.map(it => {
+    if (it.sub) {
+      return it.html.replace('</li>', `${it.sub}</li>`)
+    }
+    return it.html
+  })
+
+  return { items: finalItems.map(h => ({ html: h })), endIndex: i }
+}
+
+/**
+ * 完整 Markdown 渲染（按块逐行解析）
  */
 function renderMarkdown(text) {
   if (!text) return ''
@@ -190,23 +382,81 @@ function renderMarkdown(text) {
   while (i < lines.length) {
     const line = lines[i]
 
-    /* 代码块 ``` */
-    if (line.trimStart().startsWith('```')) {
-      const lang = line.trim().slice(3).trim()
-      const codeLines = []
+    /* === 单行数学公式 $$...$$ === */
+    const singleMathMatch = line.trim().match(/^\$\$(.+?)\$\$$/) 
+    if (singleMathMatch) {
+      html.push(`<div class="ai-math-block">${renderLatex(singleMathMatch[1].trim(), true)}</div>`)
       i++
-      while (i < lines.length && !lines[i].trimStart().startsWith('```')) {
-        codeLines.push(lines[i])
-        i++
-      }
-      i++ /* 跳过结尾 ``` */
-      const escaped = codeLines.join('\n')
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      html.push(`<pre class="ai-code-block"${lang ? ` data-lang="${lang}"` : ''}><code>${escaped}</code></pre>`)
       continue
     }
 
-    /* 表格：连续的 | 开头行 */
+    /* === 多行数学公式块 $$ ... $$ === */
+    if (line.trim() === '$$') {
+      const mathLines = []
+      const startI = i
+      i++
+      let found = false
+      while (i < lines.length) {
+        if (lines[i].trim() === '$$') { found = true; i++; break }
+        mathLines.push(lines[i])
+        i++
+      }
+      if (found && mathLines.length > 0) {
+        html.push(`<div class="ai-math-block">${renderLatex(mathLines.join('\n').trim(), true)}</div>`)
+      } else {
+        /* 未闭合：回退为普通文本，不吞后续内容 */
+        html.push(`<p>${renderInline(lines[startI])}</p>`)
+        i = startI + 1
+      }
+      continue
+    }
+
+    /* === 多行 \[ ... \] 块级公式 === */
+    if (line.trim() === '\\[') {
+      const mathLines = []
+      const startI = i
+      i++
+      let found = false
+      while (i < lines.length) {
+        if (lines[i].trim() === '\\]') { found = true; i++; break }
+        mathLines.push(lines[i])
+        i++
+      }
+      if (found && mathLines.length > 0) {
+        html.push(`<div class="ai-math-block">${renderLatex(mathLines.join('\n').trim(), true)}</div>`)
+      } else {
+        html.push(`<p>${renderInline(lines[startI])}</p>`)
+        i = startI + 1
+      }
+      continue
+    }
+
+    /* === 代码块（未闭合时回退） === */
+    if (line.trimStart().startsWith('```')) {
+      const lang = line.trim().slice(3).trim()
+      const codeLines = []
+      const startI = i
+      i++
+      let found = false
+      while (i < lines.length) {
+        if (lines[i].trimStart().startsWith('```')) { found = true; i++; break }
+        codeLines.push(lines[i])
+        i++
+      }
+      if (found) {
+        const escaped = escapeHtml(codeLines.join('\n'))
+        const langLabel = lang ? `<span class="ai-code-lang">${escapeHtml(lang)}</span>` : ''
+        html.push(`<div class="ai-code-wrapper">${langLabel}<pre class="ai-code-block"><code>${escaped}</code></pre></div>`)
+      } else {
+        /* 流式传输中未闭合：暂时显示为代码块（不吞后续内容） */
+        const escaped = escapeHtml(codeLines.join('\n'))
+        const langLabel = lang ? `<span class="ai-code-lang">${escapeHtml(lang)}</span>` : ''
+        html.push(`<div class="ai-code-wrapper">${langLabel}<pre class="ai-code-block"><code>${escaped}</code></pre></div>`)
+      }
+      continue
+    }
+
+    /* === 表格 === */
     if (line.trim().startsWith('|') && line.trim().endsWith('|')) {
       const tableLines = []
       while (i < lines.length && lines[i].trim().startsWith('|') && lines[i].trim().endsWith('|')) {
@@ -214,82 +464,95 @@ function renderMarkdown(text) {
         i++
       }
       if (tableLines.length >= 2) {
-        let tableHtml = '<table class="ai-table">'
-        /* 表头 */
-        tableHtml += `<thead>${parseTableRow(tableLines[0], 'th')}</thead>`
-        /* 跳过分隔行（|---|---| ），渲染数据行 */
-        tableHtml += '<tbody>'
-        for (let t = 2; t < tableLines.length; t++) {
-          tableHtml += parseTableRow(tableLines[t])
+        let t = '<div class="ai-table-wrap"><table class="ai-table">'
+        t += `<thead>${parseTableRow(tableLines[0], 'th')}</thead><tbody>`
+        for (let r = 1; r < tableLines.length; r++) {
+          if (isTableSeparator(tableLines[r])) continue
+          t += parseTableRow(tableLines[r])
         }
-        tableHtml += '</tbody></table>'
-        html.push(tableHtml)
+        t += '</tbody></table></div>'
+        html.push(t)
       }
       continue
     }
 
-    /* 引用块 > */
+    /* === 引用块（递归渲染内部 Markdown） === */
     if (line.trimStart().startsWith('> ') || line.trim() === '>') {
       const quoteLines = []
       while (i < lines.length && (lines[i].trimStart().startsWith('> ') || lines[i].trim() === '>')) {
         quoteLines.push(lines[i].replace(/^>\s?/, ''))
         i++
       }
-      html.push(`<blockquote class="ai-blockquote">${renderInline(quoteLines.join('<br>'))}</blockquote>`)
+      const innerHtml = renderMarkdown(quoteLines.join('\n'))
+      html.push(`<blockquote class="ai-blockquote">${innerHtml}</blockquote>`)
       continue
     }
 
-    /* 标题 # ## ### #### */
+    /* === 标题 # ~ #### === */
     const headingMatch = line.match(/^(#{1,4})\s+(.+)$/)
     if (headingMatch) {
-      const level = headingMatch[1].length + 1 /* # → h2, ## → h3 等 */
+      const level = Math.min(headingMatch[1].length + 1, 5)
       html.push(`<h${level}>${renderInline(headingMatch[2])}</h${level}>`)
       i++
       continue
     }
 
-    /* 水平线 --- / *** / ___ */
+    /* === 水平线 === */
     if (/^(\s*[-*_]){3,}\s*$/.test(line)) {
       html.push('<hr class="ai-hr">')
       i++
       continue
     }
 
-    /* 无序列表 - / * */
+    /* === 无序列表（支持嵌套 + 任务列表） === */
     if (/^\s*[-*]\s+/.test(line)) {
-      const items = []
-      while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) {
-        items.push(renderInline(lines[i].replace(/^\s*[-*]\s+/, '')))
-        i++
-      }
-      html.push('<ul>' + items.map(it => `<li>${it}</li>`).join('') + '</ul>')
+      const indent = line.match(/^(\s*)/)[1].length
+      const result = parseListItems(lines, i, indent, false)
+      html.push('<ul>' + result.items.map(it => it.html).join('') + '</ul>')
+      i = result.endIndex
       continue
     }
 
-    /* 有序列表 1. 2. 3. */
+    /* === 有序列表（支持嵌套） === */
     if (/^\s*\d+\.\s+/.test(line)) {
-      const items = []
-      while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) {
-        items.push(renderInline(lines[i].replace(/^\s*\d+\.\s+/, '')))
-        i++
-      }
-      html.push('<ol>' + items.map(it => `<li>${it}</li>`).join('') + '</ol>')
+      const indent = line.match(/^(\s*)/)[1].length
+      const result = parseListItems(lines, i, indent, true)
+      html.push('<ol>' + result.items.map(it => it.html).join('') + '</ol>')
+      i = result.endIndex
       continue
     }
 
-    /* 空行 */
+    /* === 空行 === */
     if (!line.trim()) {
-      html.push('')
       i++
       continue
     }
 
-    /* 普通段落 */
-    html.push(`<p>${renderInline(line)}</p>`)
-    i++
+    /* === 连续文本合并为段落 === */
+    const paraLines = []
+    while (i < lines.length && lines[i].trim() &&
+      !lines[i].trimStart().startsWith('```') &&
+      !lines[i].trimStart().startsWith('#') &&
+      !lines[i].trimStart().startsWith('>') &&
+      !lines[i].trimStart().startsWith('|') &&
+      !lines[i].trim().startsWith('$$') &&
+      !lines[i].trim().startsWith('\\[') &&
+      !/^\s*[-*]\s+/.test(lines[i]) &&
+      !/^\s*\d+\.\s+/.test(lines[i]) &&
+      !/^(\s*[-*_]){3,}\s*$/.test(lines[i])
+    ) {
+      paraLines.push(lines[i])
+      i++
+    }
+    if (paraLines.length > 0) {
+      html.push(`<p>${paraLines.map(l => renderInline(l)).join('<br>')}</p>`)
+    } else {
+      /* 安全兜底：防止 i 不前进导致死循环 */
+      i++
+    }
   }
 
-  return html.filter(h => h !== '').join('\n')
+  return html.join('\n')
 }
 </script>
 
@@ -379,8 +642,8 @@ function renderMarkdown(text) {
                 <div v-if="msg.loading" class="ai-typing">
                   <span></span><span></span><span></span>
                 </div>
-                <!-- 回答内容 -->
-                <div v-else v-html="renderMarkdown(msg.content)"></div>
+                <!-- 回答内容（使用预渲染缓存） -->
+                <div v-else v-html="msg.renderedHtml || renderMarkdown(msg.content)"></div>
               </div>
               <!-- 操作按钮（回答完成后显示） -->
               <div v-if="!msg.loading && msg.content && !msg.error" class="ai-msg-actions">
@@ -433,26 +696,26 @@ function renderMarkdown(text) {
   bottom: 24px;
   right: 24px;
   height: 40px;
-  padding: 0 16px;
+  padding: 0 18px;
   border-radius: 20px;
-  border: 1px solid var(--vp-c-divider);
+  border: none;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   z-index: 50;
   transition: all 0.3s ease;
-  background: var(--vp-c-bg);
-  color: var(--vp-c-text-1);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  background: var(--vp-c-brand-1);
+  color: white;
+  box-shadow: 0 4px 14px rgba(var(--vp-c-brand-1-rgb, 100, 108, 255), 0.4), 0 2px 6px rgba(0, 0, 0, 0.1);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .ai-trigger-btn:hover {
-  border-color: var(--vp-c-brand-1);
-  color: var(--vp-c-brand-1);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  background: var(--vp-c-brand-2);
+  box-shadow: 0 6px 20px rgba(var(--vp-c-brand-1-rgb, 100, 108, 255), 0.5), 0 3px 8px rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px);
 }
 
 .ai-trigger-btn.is-hidden {
@@ -466,14 +729,14 @@ function renderMarkdown(text) {
   position: fixed;
   top: 0;
   right: 0;
-  width: 380px;
+  width: 400px;
   height: 100vh;
   display: flex;
   flex-direction: column;
   z-index: 200;
   background: var(--vp-c-bg);
   border-left: 1px solid var(--vp-c-divider);
-  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.06);
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.1), -2px 0 8px rgba(0, 0, 0, 0.04);
 }
 
 .ai-panel-overlay {
@@ -491,6 +754,7 @@ function renderMarkdown(text) {
   height: 52px;
   padding: 0 12px 0 16px;
   border-bottom: 1px solid var(--vp-c-divider);
+  background: var(--vp-c-bg-soft);
   flex-shrink: 0;
 }
 
@@ -679,15 +943,34 @@ function renderMarkdown(text) {
   border-color: var(--vp-c-text-3);
 }
 
-/* 代码和内联样式 */
+/* 代码块包装器（含语言标签） */
+.ai-msg-bubble-ai :deep(.ai-code-wrapper) {
+  position: relative;
+  margin: 8px 0;
+}
+
+.ai-msg-bubble-ai :deep(.ai-code-lang) {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 2px 8px;
+  font-size: 11px;
+  color: var(--vp-c-text-3);
+  background: var(--vp-c-bg-mute);
+  border-radius: 0 6px 0 6px;
+  font-family: var(--vp-font-family-mono);
+  user-select: none;
+}
+
 .ai-msg-bubble-ai :deep(.ai-code-block) {
   background: var(--vp-c-bg-soft);
   border: 1px solid var(--vp-c-divider);
   border-radius: 6px;
   padding: 10px 12px;
-  margin: 8px 0;
+  margin: 0;
   overflow-x: auto;
   font-size: 12px;
+  line-height: 1.6;
   font-family: var(--vp-font-family-mono);
 }
 
@@ -697,6 +980,86 @@ function renderMarkdown(text) {
   border-radius: 4px;
   font-size: 12px;
   font-family: var(--vp-font-family-mono);
+}
+
+/* 图片 */
+.ai-msg-bubble-ai :deep(.ai-img) {
+  max-width: 100%;
+  border-radius: 6px;
+  margin: 6px 0;
+}
+
+/* 删除线 */
+.ai-msg-bubble-ai :deep(del) {
+  text-decoration: line-through;
+  color: var(--vp-c-text-3);
+}
+
+/* 任务列表 */
+.ai-msg-bubble-ai :deep(.ai-task-item) {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ai-msg-bubble-ai :deep(.ai-checkbox) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  border: 1.5px solid var(--vp-c-divider);
+  font-size: 11px;
+  flex-shrink: 0;
+  color: transparent;
+}
+
+.ai-msg-bubble-ai :deep(.ai-checkbox.is-checked) {
+  background: var(--vp-c-brand-1);
+  border-color: var(--vp-c-brand-1);
+  color: white;
+}
+
+/* 数学公式块 */
+.ai-msg-bubble-ai :deep(.ai-math-block) {
+  margin: 10px 0;
+  padding: 12px 16px;
+  background: var(--vp-c-bg-soft);
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 6px;
+  overflow-x: auto;
+  text-align: center;
+}
+
+/* 行内公式微调 */
+.ai-msg-bubble-ai :deep(.katex) {
+  font-size: 1em;
+}
+
+/* 高亮标记 ==text== */
+.ai-msg-bubble-ai :deep(.ai-highlight) {
+  background: rgba(255, 213, 79, 0.3);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+/* 上下标 */
+.ai-msg-bubble-ai :deep(sup) {
+  font-size: 0.75em;
+  vertical-align: super;
+}
+
+.ai-msg-bubble-ai :deep(sub) {
+  font-size: 0.75em;
+  vertical-align: sub;
+}
+
+/* 表格滚动容器 */
+.ai-msg-bubble-ai :deep(.ai-table-wrap) {
+  overflow-x: auto;
+  margin: 8px 0;
 }
 
 .ai-msg-bubble-ai :deep(a) {
