@@ -153,20 +153,143 @@ onUnmounted(() => {
   document.removeEventListener('keydown', handleGlobalKeydown)
 })
 
-/* ==================== Markdown 简易渲染 ==================== */
-function renderMarkdown(text) {
-  if (!text) return ''
+/* ==================== Markdown 渲染 ==================== */
+
+/**
+ * 内联元素渲染：代码、加粗、斜体、链接、图片
+ */
+function renderInline(text) {
   return text
-    .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre class="ai-code-block"><code>$2</code></pre>')
     .replace(/`([^`]+)`/g, '<code class="ai-inline-code">$1</code>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%">')
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
-    .replace(/^### (.+)$/gm, '<h4>$1</h4>')
-    .replace(/^## (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^- (.+)$/gm, '<li>$1</li>')
-    .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
-    .replace(/\n/g, '<br>')
+}
+
+/**
+ * 解析表格行
+ */
+function parseTableRow(line, tag = 'td') {
+  const cells = line.split('|').slice(1, -1)
+  if (!cells.length) return ''
+  const inner = cells.map(c => `<${tag}>${renderInline(c.trim())}</${tag}>`).join('')
+  return `<tr>${inner}</tr>`
+}
+
+/**
+ * 完整 Markdown 渲染（按块解析）
+ */
+function renderMarkdown(text) {
+  if (!text) return ''
+
+  const lines = text.split('\n')
+  const html = []
+  let i = 0
+
+  while (i < lines.length) {
+    const line = lines[i]
+
+    /* 代码块 ``` */
+    if (line.trimStart().startsWith('```')) {
+      const lang = line.trim().slice(3).trim()
+      const codeLines = []
+      i++
+      while (i < lines.length && !lines[i].trimStart().startsWith('```')) {
+        codeLines.push(lines[i])
+        i++
+      }
+      i++ /* 跳过结尾 ``` */
+      const escaped = codeLines.join('\n')
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      html.push(`<pre class="ai-code-block"${lang ? ` data-lang="${lang}"` : ''}><code>${escaped}</code></pre>`)
+      continue
+    }
+
+    /* 表格：连续的 | 开头行 */
+    if (line.trim().startsWith('|') && line.trim().endsWith('|')) {
+      const tableLines = []
+      while (i < lines.length && lines[i].trim().startsWith('|') && lines[i].trim().endsWith('|')) {
+        tableLines.push(lines[i].trim())
+        i++
+      }
+      if (tableLines.length >= 2) {
+        let tableHtml = '<table class="ai-table">'
+        /* 表头 */
+        tableHtml += `<thead>${parseTableRow(tableLines[0], 'th')}</thead>`
+        /* 跳过分隔行（|---|---| ），渲染数据行 */
+        tableHtml += '<tbody>'
+        for (let t = 2; t < tableLines.length; t++) {
+          tableHtml += parseTableRow(tableLines[t])
+        }
+        tableHtml += '</tbody></table>'
+        html.push(tableHtml)
+      }
+      continue
+    }
+
+    /* 引用块 > */
+    if (line.trimStart().startsWith('> ') || line.trim() === '>') {
+      const quoteLines = []
+      while (i < lines.length && (lines[i].trimStart().startsWith('> ') || lines[i].trim() === '>')) {
+        quoteLines.push(lines[i].replace(/^>\s?/, ''))
+        i++
+      }
+      html.push(`<blockquote class="ai-blockquote">${renderInline(quoteLines.join('<br>'))}</blockquote>`)
+      continue
+    }
+
+    /* 标题 # ## ### #### */
+    const headingMatch = line.match(/^(#{1,4})\s+(.+)$/)
+    if (headingMatch) {
+      const level = headingMatch[1].length + 1 /* # → h2, ## → h3 等 */
+      html.push(`<h${level}>${renderInline(headingMatch[2])}</h${level}>`)
+      i++
+      continue
+    }
+
+    /* 水平线 --- / *** / ___ */
+    if (/^(\s*[-*_]){3,}\s*$/.test(line)) {
+      html.push('<hr class="ai-hr">')
+      i++
+      continue
+    }
+
+    /* 无序列表 - / * */
+    if (/^\s*[-*]\s+/.test(line)) {
+      const items = []
+      while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) {
+        items.push(renderInline(lines[i].replace(/^\s*[-*]\s+/, '')))
+        i++
+      }
+      html.push('<ul>' + items.map(it => `<li>${it}</li>`).join('') + '</ul>')
+      continue
+    }
+
+    /* 有序列表 1. 2. 3. */
+    if (/^\s*\d+\.\s+/.test(line)) {
+      const items = []
+      while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) {
+        items.push(renderInline(lines[i].replace(/^\s*\d+\.\s+/, '')))
+        i++
+      }
+      html.push('<ol>' + items.map(it => `<li>${it}</li>`).join('') + '</ol>')
+      continue
+    }
+
+    /* 空行 */
+    if (!line.trim()) {
+      html.push('')
+      i++
+      continue
+    }
+
+    /* 普通段落 */
+    html.push(`<p>${renderInline(line)}</p>`)
+    i++
+  }
+
+  return html.filter(h => h !== '').join('\n')
 }
 </script>
 
@@ -581,24 +704,83 @@ function renderMarkdown(text) {
   text-decoration: underline;
 }
 
-.ai-msg-bubble-ai :deep(ul) {
+.ai-msg-bubble-ai :deep(p) {
   margin: 4px 0;
-  padding-left: 18px;
+}
+
+.ai-msg-bubble-ai :deep(ul),
+.ai-msg-bubble-ai :deep(ol) {
+  margin: 6px 0;
+  padding-left: 20px;
 }
 
 .ai-msg-bubble-ai :deep(li) {
-  margin: 2px 0;
+  margin: 3px 0;
 }
 
 .ai-msg-bubble-ai :deep(strong) {
   font-weight: 600;
 }
 
-.ai-msg-bubble-ai :deep(h3),
-.ai-msg-bubble-ai :deep(h4) {
+.ai-msg-bubble-ai :deep(h2) {
+  margin: 14px 0 6px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.ai-msg-bubble-ai :deep(h3) {
   margin: 12px 0 4px;
   font-size: 14px;
   font-weight: 600;
+}
+
+.ai-msg-bubble-ai :deep(h4),
+.ai-msg-bubble-ai :deep(h5) {
+  margin: 10px 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* 表格 */
+.ai-msg-bubble-ai :deep(.ai-table) {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0;
+  font-size: 13px;
+}
+
+.ai-msg-bubble-ai :deep(.ai-table th),
+.ai-msg-bubble-ai :deep(.ai-table td) {
+  border: 1px solid var(--vp-c-divider);
+  padding: 6px 10px;
+  text-align: left;
+}
+
+.ai-msg-bubble-ai :deep(.ai-table th) {
+  background: var(--vp-c-bg-soft);
+  font-weight: 600;
+}
+
+.ai-msg-bubble-ai :deep(.ai-table tr:nth-child(even) td) {
+  background: var(--vp-c-bg-alt);
+}
+
+/* 引用块 */
+.ai-msg-bubble-ai :deep(.ai-blockquote) {
+  border-left: 3px solid var(--vp-c-brand-1);
+  padding: 6px 12px;
+  margin: 8px 0;
+  color: var(--vp-c-text-2);
+  background: var(--vp-c-bg-soft);
+  border-radius: 0 6px 6px 0;
+  font-size: 13px;
+}
+
+/* 水平线 */
+.ai-msg-bubble-ai :deep(.ai-hr) {
+  border: none;
+  border-top: 1px solid var(--vp-c-divider);
+  margin: 12px 0;
 }
 
 /* ==================== 打字动画 ==================== */
