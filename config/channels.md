@@ -103,16 +103,52 @@ channels:
     model: gemini-2.0-flash
 ```
 
-## 常用 API 端点
+## 内置免费渠道 {#free-channels}
 
-| 服务 | baseUrl |
-|------|---------|
-| OpenAI 官方 | `https://api.openai.com/v1` |
-| Azure OpenAI | `https://{resource}.openai.azure.com/openai/deployments/{deployment}` |
-| DeepSeek | `https://api.deepseek.com/v1` |
-| Moonshot | `https://api.moonshot.cn/v1` |
-| 智谱 AI | `https://open.bigmodel.cn/api/paas/v4` |
-| 通义千问 | `https://dashscope.aliyuncs.com/compatible-mode/v1` |
+::: warning 免费渠道说明
+插件可能预配置了一些免费/演示渠道（如免费 Gemini、GLM 等），这些渠道由逆向服务提供：
+- **不保证可用性**：免费渠道随时可能停止服务、限流或变更
+- **不保证稳定性**：响应速度和质量可能不稳定
+:::
+
+如需稳定使用，请参考下方提供商列表申请自己的 API Key。
+
+## 支持的 API 提供商 {#providers}
+
+### 国际厂商
+
+| 服务 | baseUrl | 特性 |
+|------|---------|------|
+| **OpenAI** | `https://api.openai.com/v1` | 对话、视觉、工具、嵌入、语音 |
+| **Anthropic Claude** | `https://api.anthropic.com` | 对话、视觉、工具、思维链 |
+| **Google Gemini** | `https://generativelanguage.googleapis.com` | 对话、视觉、工具、搜索增强 |
+| **xAI Grok** | `https://api.x.ai/v1` | 对话、工具 |
+| **Mistral AI** | `https://api.mistral.ai/v1` | 对话、嵌入、工具 |
+| **Groq** | `https://api.groq.com/openai/v1` | 对话、工具（超快推理） |
+
+### 国内厂商
+
+| 服务 | baseUrl | 特性 |
+|------|---------|------|
+| **DeepSeek** | `https://api.deepseek.com/v1` | 对话、工具、推理 |
+| **智谱 AI** | `https://open.bigmodel.cn/api/paas/v4` | 对话、视觉、工具、嵌入 |
+| **通义千问** | `https://dashscope.aliyuncs.com/compatible-mode/v1` | 对话、视觉、工具、嵌入 |
+| **Moonshot Kimi** | `https://api.moonshot.cn/v1` | 对话、工具、文件 |
+| **MiniMax** | `https://api.minimax.chat/v1` | 对话、工具、TTS |
+| **零一万物** | `https://api.lingyiwanwu.com/v1` | 对话、视觉、工具 |
+| **百川智能** | `https://api.baichuan-ai.com/v1` | 对话、工具 |
+
+### 中转/聚合服务
+
+| 服务 | baseUrl | 说明 |
+|------|---------|------|
+| **OpenRouter** | `https://openrouter.ai/api/v1` | 聚合多家模型，统一接口 |
+| **硅基流动** | `https://api.siliconflow.cn/v1` | 国内聚合平台 |
+| **Together AI** | `https://api.together.xyz/v1` | 开源模型托管 |
+
+::: tip 兼容性说明
+大部分 OpenAI 兼容 API 都可以直接使用 `openai` 类型接入，只需修改 `baseUrl` 和 `apiKey`。
+:::
 
 ## 负载均衡
 

@@ -10,7 +10,7 @@ Choose the appropriate development method based on your needs, from simple to co
 
 | Source | Location | Description | Hot Reload |
 |:-------|:---------|:------------|:----------:|
-| **Built-in Tools** | `src/mcp/tools/` | Core functionality, 20 categorized modules | ✅ |
+| **Built-in Tools** | `src/mcp/tools/` | Core functionality, 22 categorized modules | ✅ |
 | **Custom JS** | `data/tools/` | User scripts, no source code modification needed | ✅ |
 | **External MCP** | `data/mcp-servers.json` | npm packages or remote servers | ❌ |
 

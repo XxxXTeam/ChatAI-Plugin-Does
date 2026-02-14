@@ -113,7 +113,7 @@ PUT /api/config/channels/:name
 
 ```json
 {
-  "model": "deepseek-coder",
+  "model": "deepseek-chat",
   "enabled": true
 }
 ```

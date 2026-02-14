@@ -45,24 +45,43 @@ channels:
 |:------|:--------|:---------|
 | `gpt-4o` | 128K | General, vision |
 | `gpt-4o-mini` | 128K | Fast, cheap |
+| `o1` / `o3-mini` | 128K | Reasoning |
 | `gpt-4-turbo` | 128K | Complex tasks |
-| `o1-preview` | 128K | Reasoning |
 
 ### Claude {#claude-models}
 
 | Model | Context | Best For |
 |:------|:--------|:---------|
-| `claude-3-5-sonnet` | 200K | Best overall |
+| `claude-sonnet-4` | 200K | Latest, best overall |
+| `claude-3-5-sonnet` | 200K | Strong performance |
+| `claude-3-5-haiku` | 200K | Fast, cheap |
 | `claude-3-opus` | 200K | Complex tasks |
-| `claude-3-haiku` | 200K | Fast, cheap |
+
+### Gemini {#gemini-models}
+
+| Model | Context | Best For |
+|:------|:--------|:---------|
+| `gemini-2.5-flash` | 1M | Latest Flash |
+| `gemini-2.5-pro` | 1M | Latest Pro |
+| `gemini-2.0-flash` | 1M | Fast, general |
+| `gemini-1.5-pro` | 2M | Long context |
+
+### DeepSeek {#deepseek-models}
+
+| Model | Context | Best For |
+|:------|:--------|:---------|
+| `deepseek-chat` | 64K | V3, Chinese & coding |
+| `deepseek-reasoner` | 64K | R1 reasoning |
 
 ### Others {#other-models}
 
 | Model | Provider | Best For |
 |:------|:---------|:---------|
-| `deepseek-chat` | DeepSeek | Chinese, coding |
-| `gemini-pro` | Google | General |
-| `qwen-turbo` | Alibaba | Chinese |
+| `grok-3` / `grok-3-mini` | xAI | General, tools |
+| `mistral-large-latest` | Mistral | Flagship |
+| `llama-3.3-70b-versatile` | Groq | Ultra-fast inference |
+| `glm-4-plus` / `glm-4-flash` | Zhipu AI | Chinese |
+| `qwen-max` / `qwen-plus` | Qwen | Chinese |
 
 ## Per-Group Models {#per-group}
 

@@ -10,7 +10,7 @@ ChatAI Plugin 基于 **MCP (Model Context Protocol)** 标准实现工具系统�
 
 | 来源 | 位置 | 说明 | 热重载 |
 |:-----|:-----|:-----|:------:|
-| **内置工具** | `src/mcp/tools/` | 核心功能，20个类别模块化组织 | ✅ |
+| **内置工具** | `src/mcp/tools/` | 核心功能，22个类别模块化组织 | ✅ |
 | **自定义 JS** | `data/tools/` | 用户脚本，无需修改源码 | ✅ |
 | **外部 MCP** | `data/mcp-servers.json` | npm 包或远程服务器 | ❌ |
 

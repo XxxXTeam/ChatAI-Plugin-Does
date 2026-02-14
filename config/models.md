@@ -32,33 +32,62 @@ channels:
 
 | 模型 | 说明 | 上下文 |
 |------|------|--------|
-| `gpt-4o` | 最新多模态模型 | 128K |
-| `gpt-4o-mini` | 轻量高效 | 128K |
-| `gpt-4-turbo` | 高性能 | 128K |
-| `gpt-3.5-turbo` | 经济实惠 | 16K |
+| `gpt-5.2` | 多模态旗舰 | 128K |
+| `gpt-5-nano` | 轻量高效 | 128K |
 
 ### Claude
 
 | 模型 | 说明 | 上下文 |
 |------|------|--------|
-| `claude-3-5-sonnet-20241022` | 最新 Sonnet | 200K |
-| `claude-3-opus-20240229` | 最强能力 | 200K |
-| `claude-3-haiku-20240307` | 快速响应 | 200K |
+| `claude-sonnet-4-5` | 最新 Sonnet 4 | 200K |
+| `claude-3-5-sonnet` | Sonnet 3.5 | 200K |
+| `claude-4-5-haiku` | 快速响应 | 200K |
+| `claude-3-opus` | Opus 3 | 200K |
 
 ### Gemini
 
 | 模型 | 说明 | 上下文 |
 |------|------|--------|
-| `gemini-2.0-flash` | 最新 Flash | 1M |
-| `gemini-1.5-pro` | 专业版 | 2M |
-| `gemini-1.5-flash` | 快速版 | 1M |
+| `gemini-3-flash` | 最新 Flash | 1M |
+| `gemini-3-pro` | 最新 Pro | 1M |
+| `gemini-2.0-flash` | Flash 2.0 | 1M |
+| `gemini-2.5-pro` | 专业版 | 2M |
 
 ### DeepSeek
 
 | 模型 | 说明 | 上下文 |
 |------|------|--------|
-| `deepseek-chat` | 对话模型 | 64K |
-| `deepseek-coder` | 代码模型 | 64K |
+| `deepseek-chat` | V3 对话模型 | 64K |
+| `deepseek-reasoner` | R1 推理模型 | 64K |
+
+### xAI Grok
+
+| 模型 | 说明 | 上下文 |
+|------|------|--------|
+| `grok-3` | Grok 3 旗舰 | 131K |
+| `grok-3-mini` | Grok 3 轻量 | 131K |
+
+### Mistral
+
+| 模型 | 说明 | 上下文 |
+|------|------|--------|
+| `mistral-large-latest` | 旗舰模型 | 128K |
+| `codestral-latest` | 代码专用 | 256K |
+
+### Groq
+
+| 模型 | 说明 | 上下文 |
+|------|------|--------|
+| `llama-3.3-70b-versatile` | Llama 3.3 | 128K |
+| `mixtral-8x7b-32768` | Mixtral MoE | 32K |
+
+### 国内厂商
+
+| 模型 | 提供商 | 上下文 |
+|------|--------|--------|
+| `glm-4-plus` / `glm-4-flash` | 智谱 AI | 128K |
+| `qwen-max` / `qwen-plus` | 通义千问 | 128K |
+| `moonshot-v1-128k` | Moonshot Kimi | 128K |
 
 ## 模型选择策略
 
@@ -137,10 +166,14 @@ channels:
 
 | 模型 | 工具调用 |
 |------|----------|
-| GPT-4o/4-turbo | ✅ |
-| GPT-3.5-turbo | ✅ |
-| Claude 3.x | ✅ |
-| Gemini 1.5+ | ✅ |
+| GPT-4o / o1 / o3 | ✅ |
+| Claude 3.5+ / 4 | ✅ |
+| Gemini 2.0+ / 2.5 | ✅ |
+| DeepSeek V3 | ✅ |
+| Grok 3 | ✅ |
+| Mistral Large | ✅ |
+| GLM-4 系列 | ✅ |
+| Qwen 系列 | ✅ |
 
 配置：
 
@@ -157,9 +190,12 @@ channels:
 
 | 模型 | 视觉 |
 |------|------|
-| GPT-4o/4-turbo | ✅ |
-| Claude 3.x | ✅ |
-| Gemini Pro Vision | ✅ |
+| GPT-4o | ✅ |
+| Claude 3.5+ / 4 | ✅ |
+| Gemini 2.0+ / 2.5 | ✅ |
+| Grok 3 | ✅ |
+| GLM-4V 系列 | ✅ |
+| Qwen-VL 系列 | ✅ |
 
 配置：
 

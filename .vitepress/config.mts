@@ -348,12 +348,31 @@ export default withMermaid({
             { text: 'API 概述', link: '/api/' },
             { text: '认证接口', link: '/api/auth' },
             { text: '配置接口', link: '/api/config' },
-            { text: '工具接口', link: '/api/tools' },
-            { text: 'MCP 接口', link: '/api/mcp' },
             { text: '聊天接口', link: '/api/chat' },
-            { text: '群组接口', link: '/api/groups' },
+            { text: '工具接口', link: '/api/tools' },
+            { text: '技能接口', link: '/api/skills' },
+            { text: 'MCP 接口', link: '/api/mcp' },
             { text: '预设接口', link: '/api/presets' },
+            { text: '群组接口', link: '/api/groups' },
             { text: '统计接口', link: '/api/stats' }
+          ]
+        },
+        {
+          text: '数据管理',
+          items: [
+            { text: '记忆接口', link: '/api/memories' },
+            { text: '知识库接口', link: '/api/knowledge' },
+            { text: '知识图谱接口', link: '/api/graph' },
+            { text: '作用域接口', link: '/api/scope' }
+          ]
+        },
+        {
+          text: '扩展功能',
+          items: [
+            { text: '绘图接口', link: '/api/image' },
+            { text: '游戏接口', link: '/api/game' },
+            { text: '日志接口', link: '/api/logs' },
+            { text: '代理接口', link: '/api/proxy-api' }
           ]
         }
       ],

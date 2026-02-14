@@ -38,15 +38,22 @@ graph TB
 | 模块 | 路径 | 说明 | 文档 |
 |:-----|:-----|:-----|:----:|
 | **认证** | `/api/auth` | 登录、验证、Token 管理 | [查看](./auth) |
-| **配置** | `/api/config` | 配置读取与更新 | [查看](./config) |
-| **渠道** | `/api/channels` | 渠道 CRUD、测试、模型列表 | - |
-| **对话** | `/api/conversations` | 对话历史管理 | [查看](./chat) |
-| **预设** | `/api/presets` | 预设 CRUD | [查看](./presets) |
-| **工具** | `/api/tools` | 工具管理与日志 | [查看](./tools) |
-| **MCP** | `/api/mcp` | MCP 服务器管理 | [查看](./mcp) |
-| **技能** | `/api/skills` | 技能代理接口 | - |
-| **群管理** | `/api/group-admin` | 群组独立配置 | [查看](./groups) |
-| **系统** | `/api/system` | 系统状态与统计 | [查看](./stats) |
+| **配置** | `/api/config` | 配置读取与更新、渠道管理、群组配置 | [查看](./config) |
+| **对话** | `/api/conversations` | 对话历史查看与清理 | [查看](./chat) |
+| **预设** | `/api/presets` | 预设 CRUD、预设文件管理 | [查看](./presets) |
+| **工具** | `/api/tools` | 工具管理、执行、日志、危险工具配置 | [查看](./tools) |
+| **MCP** | `/api/mcp` | MCP 服务器连接、管理、SSE 状态推送 | [查看](./mcp) |
+| **技能** | `/api/skills` | Skills Agent 接口、工具分类、全局开关、SSE | [查看](./skills) |
+| **群管理** | `/api/group-admin` | 群组独立配置、群管登录 | [查看](./groups) |
+| **系统** | `/api/system` | 健康检查、版本信息、统计数据 | [查看](./stats) |
+| **记忆** | `/api/memories` | 结构化用户记忆管理、分类、统计 | [查看](./memories) |
+| **知识库** | `/api/knowledge` | 知识库文档 CRUD、搜索 | [查看](./knowledge) |
+| **知识图谱** | `/api/graph` | 实体、关系、属性的 CRUD、可视化数据 | [查看](./graph) |
+| **绘图** | `/api/image` | 绘图预设管理、远程预设缓存 | [查看](./image) |
+| **游戏** | `/api/game` | Galgame 角色预设管理 | [查看](./game) |
+| **日志** | `/api/logs` | 日志文件列表、错误日志查看 | [查看](./logs) |
+| **代理** | `/api/proxy` | 网络代理配置管理 | [查看](./proxy-api) |
+| **作用域** | `/api/scope` | 用户/群组级别独立配置管理 | [查看](./scope) |
 
 ## 认证 {#authentication}
 
@@ -152,8 +159,17 @@ eventSource.onerror = (error) => {
 
 | 文档 | 说明 | 主要接口 |
 |:-----|:-----|:---------|
-| [认证接口](./auth) | 登录与验证 | `POST /auth/login`, `GET /auth/verify` |
-| [配置接口](./config) | 配置管理 | `GET /config`, `PUT /config` |
-| [工具接口](./tools) | 工具管理 | `GET /tools`, `POST /tools/call` |
-| [MCP 接口](./mcp) | MCP 服务器 | `GET /mcp/servers`, `POST /mcp/connect` |
-| [聊天接口](./chat) | 聊天功能 | `POST /chat`, `GET /conversations` |
+| [认证接口](./auth) | 登录与验证 | `POST /auth/verify`, `POST /auth/logout` |
+| [配置接口](./config) | 配置与渠道管理 | `GET /config`, `PUT /config`, `POST /config/channels` |
+| [聊天接口](./chat) | 对话与记忆 | `POST /chat`, `GET /chat/history` |
+| [工具接口](./tools) | 工具管理 | `GET /tools`, `POST /tools/:name/execute` |
+| [技能接口](./skills) | Skills Agent | `GET /skills/categories`, `POST /skills/toggle-category` |
+| [MCP 接口](./mcp) | MCP 服务器 | `GET /mcp/servers`, `POST /mcp/servers/:name/connect` |
+| [记忆接口](./memories) | 用户记忆 | `GET /memories/users`, `POST /memories/user/:userId` |
+| [知识库接口](./knowledge) | 知识库文档 | `GET /knowledge`, `GET /knowledge/search` |
+| [知识图谱接口](./graph) | 实体与关系 | `GET /graph/entities`, `POST /graph/relations` |
+| [绘图接口](./image) | 绘图预设 | `GET /image/presets`, `PUT /image/config` |
+| [游戏接口](./game) | Galgame | `GET /game/presets`, `POST /game/presets` |
+| [日志接口](./logs) | 日志查看 | `GET /logs`, `GET /logs/recent` |
+| [代理接口](./proxy-api) | 网络代理 | `GET /proxy`, `PUT /proxy/scopes/:scope` |
+| [作用域接口](./scope) | 粒度配置 | `GET /scope/users`, `PUT /scope/group/:groupId` |

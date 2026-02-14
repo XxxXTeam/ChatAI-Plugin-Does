@@ -33,16 +33,23 @@ builtinTools:
   disabledTools: []
 ```
 
-### 工具类别
+### 工具类别（22个）
 
-| 类别 | 说明 | 示例工具 |
-|------|------|----------|
-| `basic` | 基础工具 | get_time, calculate |
-| `user` | 用户相关 | get_user_info |
-| `group` | 群组相关 | get_group_info |
-| `message` | 消息操作 | send_message |
-| `media` | 媒体处理 | generate_image |
-| `web` | 网络请求 | fetch_url |
+完整类别列表详见 [内置工具](/tools/builtin)，常用类别如下：
+
+| 类别 | 说明 | 类别 | 说明 |
+|------|------|------|------|
+| `basic` | 基础工具 | `admin` | 群管理 |
+| `user` | 用户信息 | `groupStats` | 群统计 |
+| `group` | 群组信息 | `file` | 文件操作 |
+| `message` | 消息操作 | `search` | 搜索工具 |
+| `media` | 媒体处理 | `utils` | 实用工具 |
+| `web` | 网页访问 | `bot` | Bot信息 |
+| `memory` | 记忆管理 | `voice` | 语音/声聊 |
+| `context` | 上下文管理 | `extra` | 扩展工具 |
+| `shell` | 系统命令⚠️ | `schedule` | 定时任务 |
+| `bltools` | 扩展工具集 | `reminder` | 定时提醒 |
+| `imageGen` | 绘图服务 | `qzone` | QQ空间 |
 
 ## 外部 MCP 服务器
 

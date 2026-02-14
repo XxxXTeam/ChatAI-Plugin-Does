@@ -1,4 +1,4 @@
-# Built-in Tools <Badge type="info" text="20 Categories" />
+# Built-in Tools <Badge type="info" text="22 Categories" />
 
 Built-in tools are core plugin functionality, located in `src/mcp/tools/` directory, managed by `BuiltinMcpServer`.
 
@@ -32,11 +32,13 @@ src/mcp/tools/
 ├── shell.js         # System commands (⚠️dangerous)
 ├── schedule.js      # Scheduled tasks
 ├── bltools.js       # Extended tools
-└── reminder.js      # Reminders
+├── reminder.js      # Reminders
+├── imageGen.js      # Image generation
+└── qzone.js         # QQ Zone/Moments
 ```
 :::
 
-## Tool Categories (20) {#categories}
+## Tool Categories (22) {#categories}
 
 ::: info Category Description
 Each category contains multiple related tools, can be enabled/disabled as a whole.
@@ -64,6 +66,8 @@ Each category contains multiple related tools, can be enabled/disabled as a whol
 | `schedule` | Scheduled Tasks | Create, manage scheduled tasks, supports periodic execution | 🟡 Medium |
 | `bltools` | Extended | QQ Music, stickers, Bilibili, GitHub, AI image editing | 🟢 Safe |
 | `reminder` | Reminders | Set timed reminders, supports relative/absolute time, repeat | 🟢 Safe |
+| `imageGen` | Image Generation | AI image generation, text-to-image, image-to-image, text-to-video | 🟢 Safe |
+| `qzone` | QQ Zone | Post moments, get moments list, like, delete, signature, etc. | 🟡 Medium |
 
 ::: danger shell Category Warning
 `shell` category can execute system commands, has security risks. Only enable in trusted environments and restrict to master permission.

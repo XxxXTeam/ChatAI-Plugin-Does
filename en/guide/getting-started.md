@@ -150,6 +150,8 @@ A setup wizard will automatically appear on first visit, follow the steps to com
 
 ::: tip 🎉 Free Trial
 Select **OpenEL Free Channel** for direct experience without API Key!
+
+⚠️ Free channels are provided by third parties with **no guarantee of availability or stability**. For production use, configure your own API Key. See [Channel Configuration](../config/channels#free-channels).
 :::
 
 ## Start Chatting {#start-chat}

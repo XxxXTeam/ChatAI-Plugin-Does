@@ -65,7 +65,7 @@ Each layer only depends on lower layers, not upper layers, ensuring module decou
 |:----------|:-----|:---------------|
 | **McpManager** | `src/mcp/McpManager.js` | Unified management of all tool sources, provides registration, query, call interfaces |
 | **McpClient** | `src/mcp/McpClient.js` | MCP protocol client, supports stdio/npm/SSE/HTTP transports |
-| **BuiltinMcpServer** | `src/mcp/BuiltinMcpServer.js` | Built-in tool server, manages 20 tool categories and custom JS tools |
+| **BuiltinMcpServer** | `src/mcp/BuiltinMcpServer.js` | Built-in tool server, manages 22 tool categories and custom JS tools |
 
 ### Skills Agent {#skills-agent}
 
@@ -107,7 +107,7 @@ chatgpt-plugin/
 │   │   ├── McpManager.js    # MCP manager
 │   │   ├── McpClient.js     # MCP client
 │   │   ├── BuiltinMcpServer.js  # Built-in tool server
-│   │   └── tools/           # Built-in tools (20 categories)
+│   │   └── tools/           # Built-in tools (22 categories)
 │   └── services/            # Service layer
 │       ├── agent/           # Skills Agent
 │       ├── llm/             # LLM service

@@ -48,16 +48,21 @@ tools:
 #工具列表
 ```
 
-### 工具类别
+### 工具类别（22个）
 
-| 类别 | 说明 | 示例工具 |
-|------|------|----------|
-| basic | 基础工具 | get_time, calculate |
-| user | 用户相关 | get_user_info |
-| group | 群组相关 | get_group_info |
-| message | 消息操作 | send_message |
-| media | 媒体处理 | generate_image |
-| web | 网络请求 | fetch_url |
+插件内置 22 个工具类别，完整列表详见 [内置工具](/tools/builtin)，常用类别：
+
+| 类别 | 说明 | 类别 | 说明 |
+|------|------|------|------|
+| `basic` | 基础工具 | `search` | 搜索工具 |
+| `user` | 用户信息 | `utils` | 实用工具 |
+| `group` | 群组信息 | `voice` | 语音/声聊 |
+| `message` | 消息操作 | `bot` | Bot信息 |
+| `admin` | 群管理 | `extra` | 扩展工具 |
+| `media` | 媒体处理 | `schedule` | 定时任务 |
+| `web` | 网页访问 | `bltools` | 扩展工具集 |
+| `memory` | 记忆管理 | `imageGen` | 绘图服务 |
+| `file` | 文件操作 | `qzone` | QQ空间 |
 
 ### 启用/禁用类别
 

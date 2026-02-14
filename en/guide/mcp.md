@@ -16,16 +16,19 @@ graph LR
 
 ## Built-in Tools {#builtin}
 
-ChatAI Plugin includes 60+ built-in tools in 20 categories:
+ChatAI Plugin includes built-in tools in **22 categories**. See [Built-in Tools](/en/tools/builtin) for the full list.
 
-| Category | Examples |
-|:---------|:---------|
-| **Basic** | Get time, random numbers |
-| **User** | User info, friend list |
-| **Group** | Group info, member list |
-| **Message** | Send messages, get history |
-| **Search** | Web search, Wikipedia |
-| **Media** | Image analysis, QR codes |
+| Category | Description | Category | Description |
+|:---------|:---------|:---------|:---------|
+| **basic** | Time, random numbers | **search** | Web search, Wiki, translation |
+| **user** | User info, friends | **utils** | Calculation, encoding |
+| **group** | Group info, members | **voice** | TTS, voice recognition |
+| **message** | Send/get messages | **bot** | Bot info, status |
+| **admin** | Mute, kick, admin | **extra** | Weather, quotes, dice |
+| **media** | Images, QR codes | **schedule** | Scheduled tasks |
+| **web** | Fetch web pages | **bltools** | QQ Music, Bilibili, GitHub |
+| **memory** | User memory CRUD | **imageGen** | AI image generation |
+| **file** | File upload/download | **qzone** | QQ Zone moments |
 
 ## Using Tools {#using}
 

@@ -65,7 +65,7 @@ graph TB
 |:-----|:-----|:-----|
 | **McpManager** | `src/mcp/McpManager.js` | 统一管理所有工具来源，提供工具注册、查询、调用接口 |
 | **McpClient** | `src/mcp/McpClient.js` | MCP 协议客户端，支持 stdio/npm/SSE/HTTP 多种传输 |
-| **BuiltinMcpServer** | `src/mcp/BuiltinMcpServer.js` | 内置工具服务器，管理 20 个类别的工具和自定义 JS 工具 |
+| **BuiltinMcpServer** | `src/mcp/BuiltinMcpServer.js` | 内置工具服务器，管理 22 个类别的工具和自定义 JS 工具 |
 
 ### Skills Agent {#skills-agent}
 
@@ -107,7 +107,7 @@ chatgpt-plugin/
 │   │   ├── McpManager.js    # MCP 管理器
 │   │   ├── McpClient.js     # MCP 客户端
 │   │   ├── BuiltinMcpServer.js  # 内置工具服务器
-│   │   └── tools/           # 内置工具（20个类别）
+│   │   └── tools/           # 内置工具（22个类别）
 │   └── services/            # 服务层
 │       ├── agent/           # Skills Agent
 │       ├── llm/             # LLM 服务

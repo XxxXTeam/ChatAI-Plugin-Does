@@ -66,7 +66,7 @@ After starting, send `#ai管理面板` to get the Web panel login link and follo
 | **Multi-Channel** | Configure multiple API channels for load balancing and failover | [Channels](/en/config/channels) |
 | **Preset System** | Rich AI persona presets with custom System Prompt support | [Presets](/en/guide/presets) |
 | **Triggers** | Support @mention, prefix trigger, keyword trigger, random trigger | [Triggers](/en/guide/triggers) |
-| **Tool Calling** | AI can call 60+ built-in tools to perform actions | [Tools](/en/tools/) |
+| **Tool Calling** | 22 categories of built-in tools covering messaging, admin, search, drawing and more | [Tools](/en/tools/) |
 | **Group Management** | Independent configuration per group with different presets | [Features](/en/config/features) |
 | **Long-term Memory** | Vector database based user memory system | [Memory](/en/config/memory) |
 
