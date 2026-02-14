@@ -426,18 +426,56 @@ export default withMermaid({
     search: {
       provider: 'local',
       options: {
-        translations: {
-          button: {
-            buttonText: '搜索文档',
-            buttonAriaLabel: '搜索文档'
-          },
-          modal: {
-            noResultsText: '无法找到相关结果',
-            resetButtonTitle: '清除查询条件',
-            footer: {
-              selectText: '选择',
-              navigateText: '切换'
+        locales: {
+          root: {
+            translations: {
+              button: {
+                buttonText: '搜索文档',
+                buttonAriaLabel: '搜索文档'
+              },
+              modal: {
+                displayDetails: '显示详细列表',
+                noResultsText: '无法找到相关结果',
+                resetButtonTitle: '清除查询条件',
+                backButtonTitle: '返回',
+                footer: {
+                  selectText: '选择',
+                  selectKeyAriaLabel: '回车',
+                  navigateText: '切换',
+                  navigateUpKeyAriaLabel: '上',
+                  navigateDownKeyAriaLabel: '下',
+                  closeText: '关闭',
+                  closeKeyAriaLabel: 'esc'
+                }
+              }
             }
+          },
+          en: {
+            translations: {
+              button: {
+                buttonText: 'Search',
+                buttonAriaLabel: 'Search documentation'
+              },
+              modal: {
+                noResultsText: 'No results found',
+                resetButtonTitle: 'Reset search',
+                footer: {
+                  selectText: 'Select',
+                  navigateText: 'Navigate',
+                  closeText: 'Close'
+                }
+              }
+            }
+          }
+        },
+        miniSearch: {
+          options: {
+            tokenize: (text: string) => text.split(/[\s\-_,.;:!?'"(){}[\]<>/\\|@#$%^&*+=~`]+/u)
+          },
+          searchOptions: {
+            fuzzy: 0.2,
+            prefix: true,
+            boost: { title: 4, text: 2, titles: 1 }
           }
         }
       }

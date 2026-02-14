@@ -158,7 +158,21 @@ function handleKeydown(e) {
   }
 }
 
+/**
+ * 全局快捷键处理
+ * - Ctrl+I / Cmd+I：打开面板并聚焦输入框
+ * - Escape：关闭面板
+ */
 function handleGlobalKeydown(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'i') {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!isOpen.value) {
+      isOpen.value = true
+    }
+    nextTick(() => inputRef.value?.focus())
+    return
+  }
   if (e.key === 'Escape' && isOpen.value) {
     isOpen.value = false
   }
