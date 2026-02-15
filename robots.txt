@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://xxxteam.github.io/ChatAI-Plugin-Does/sitemap.xml
