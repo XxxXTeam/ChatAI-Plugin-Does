@@ -64,9 +64,9 @@ builtinTools:
 tools:
   mode: whitelist
   allowedTools:
-    - get_time
+    - get_current_time
     - get_weather
-    - search_web
+    - web_search
 ```
 
 ### 黑名单模式
@@ -75,7 +75,7 @@ tools:
 tools:
   mode: blacklist
   excludedTools:
-    - send_message
+    - send_group_message
     - kick_member
 ```
 
@@ -233,7 +233,7 @@ mcp:
 ```json
 {
   "id": "uuid",
-  "toolName": "send_message",
+  "toolName": "send_group_message",
   "args": {"target": "123", "content": "..."},
   "result": "success",
   "userId": "456",
@@ -249,7 +249,7 @@ mcp:
 #工具日志
 
 # API
-GET /api/tools/logs?limit=100&toolName=send_message
+GET /api/tools/logs?limit=100&toolName=send_group_message
 ```
 
 ## 安全执行流程 {#execution-flow}

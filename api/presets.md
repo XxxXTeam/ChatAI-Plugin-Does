@@ -79,7 +79,7 @@ GET /api/presets/:id
     "maxTokens": 2048,
     "tools": {
       "enabled": true,
-      "allowedTools": ["get_time", "get_weather"],
+      "allowedTools": ["get_current_time", "get_weather"],
       "excludedTools": []
     },
     "voice": {
@@ -263,7 +263,7 @@ maxTokens: 2048
 tools:
   enabled: true
   allowedTools:
-    - get_time
+    - get_current_time
     - get_weather
     - web_search
 

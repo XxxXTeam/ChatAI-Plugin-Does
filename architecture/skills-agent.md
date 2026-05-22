@@ -71,11 +71,11 @@ const toolDefinitions = agent.getToolDefinitions()
 
 ```javascript
 // 执行单个技能
-const result = await agent.execute('get_time', { timezone: 'Asia/Shanghai' })
+const result = await agent.execute('get_current_time', { timezone: 'Asia/Shanghai' })
 
 // 并行执行多个技能
 const results = await agent.executeParallel([
-  { name: 'get_time', args: {} },
+  { name: 'get_current_time', args: {} },
   { name: 'get_weather', args: { city: '北京' } }
 ])
 ```
@@ -109,7 +109,7 @@ builtinTools:
 # 预设文件
 tools:
   allowedTools:
-    - get_time
+    - get_current_time
     - get_weather
   excludedTools: []
 ```
@@ -135,18 +135,17 @@ Skills Agent 可以自动填充上下文参数：
 ```javascript
 // 工具定义
 {
-  name: 'send_message',
+  name: 'send_group_message',
   parameters: {
     properties: {
-      userId: { type: 'string', autoFill: 'context.userId' },
-      groupId: { type: 'string', autoFill: 'context.groupId' }
+      group_id: { type: 'string', description: '目标群号' },
+      message: { type: 'string', description: '消息内容' }
     }
   }
 }
 
-// 调用时自动填充
-agent.execute('send_message', { text: 'Hello' })
-// 实际参数: { text: 'Hello', userId: '123', groupId: '456' }
+// 调用时传入实际参数
+agent.execute('send_group_message', { group_id: '456', message: 'Hello' })
 ```
 
 ## 静态方法 vs 实例方法
@@ -154,7 +153,7 @@ agent.execute('send_message', { text: 'Hello' })
 | 方法类型 | 用途 | 示例 |
 |----------|------|------|
 | 静态方法 | MCP 服务器管理 | `SkillsAgent.getMcpServers()` |
-| 实例方法 | 工具执行 | `agent.execute('get_time', {})` |
+| 实例方法 | 工具执行 | `agent.execute('get_current_time', {})` |
 
 ```javascript
 // 静态方法 - 管理操作
@@ -163,7 +162,7 @@ await SkillsAgent.connectMcpServer('my-server', config)
 await SkillsAgent.reloadAllTools()
 
 // 实例方法 - 执行操作
-const result = await agent.execute('send_message', { text: 'Hello' })
+const result = await agent.execute('send_group_message', { group_id: '456', message: 'Hello' })
 ```
 
 ## 执行日志
@@ -174,7 +173,7 @@ const result = await agent.execute('send_message', { text: 'Hello' })
 // 日志结构
 {
   id: 'uuid',
-  toolName: 'get_time',
+  toolName: 'get_current_time',
   args: { timezone: 'Asia/Shanghai' },
   result: '2024-12-15 14:30:25',
   userId: '123456',
@@ -189,7 +188,7 @@ const result = await agent.execute('send_message', { text: 'Hello' })
 ```javascript
 const logs = await SkillsAgent.getExecutionLogs({
   limit: 100,
-  toolName: 'get_time'
+  toolName: 'get_current_time'
 })
 ```
 

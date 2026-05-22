@@ -177,7 +177,7 @@ GET /api/stats/tools
   "data": {
     "tools": [
       {
-        "name": "get_time",
+        "name": "get_current_time",
         "calls": 500,
         "avgDuration": 15,
         "successRate": 0.99

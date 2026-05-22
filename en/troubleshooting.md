@@ -471,6 +471,6 @@ grep -i "error\|fail" logs/latest.log
 
 | Channel | Link | Use Case |
 |:--------|:-----|:---------|
-| **GitHub Issues** | [Submit Issue](https://github.com/XxxXTeam/chatai-pluginissues) | Bug reports, feature requests |
+| **GitHub Issues** | [Submit Issue](https://github.com/XxxXTeam/chatai-plugin/issues) | Bug reports, feature requests |
 | **Documentation** | [View Docs](/) | Configuration and usage questions |
 | **QQ Group** | See project README | Discussion and chat |

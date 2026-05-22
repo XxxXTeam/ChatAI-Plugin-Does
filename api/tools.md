@@ -3,7 +3,7 @@
 ## 获取所有工具
 
 ```http
-GET /api/tools
+GET /api/tools/list
 ```
 
 **查询参数**
@@ -20,7 +20,7 @@ GET /api/tools
   "success": true,
   "data": [
     {
-      "name": "get_time",
+      "name": "get_current_time",
       "description": "获取当前时间",
       "category": "basic",
       "source": "builtin",
@@ -38,10 +38,10 @@ GET /api/tools
 }
 ```
 
-## 按来源分组
+## 获取内置工具列表
 
 ```http
-GET /api/tools/by-source
+GET /api/tools/builtin/list
 ```
 
 **响应**
@@ -49,48 +49,30 @@ GET /api/tools/by-source
 ```json
 {
   "success": true,
-  "data": {
-    "builtin": [...],
-    "custom": [...],
-    "mcp": [...]
-  }
+  "data": [
+    {
+      "name": "get_current_time",
+      "description": "获取当前时间",
+      "category": "basic",
+      "source": "builtin",
+      "inputSchema": {...}
+    }
+  ]
 }
 ```
 
-## 获取工具详情
+## 测试工具执行
 
 ```http
-GET /api/tools/:name
-```
-
-**响应**
-
-```json
-{
-  "success": true,
-  "data": {
-    "name": "get_time",
-    "description": "获取当前时间",
-    "category": "basic",
-    "source": "builtin",
-    "parameters": {...},
-    "dangerous": false,
-    "adminOnly": false
-  }
-}
-```
-
-## 执行工具
-
-```http
-POST /api/tools/:name/execute
+POST /api/tools/test
 ```
 
 **请求体**
 
 ```json
 {
-  "args": {
+  "toolName": "get_current_time",
+  "arguments": {
     "timezone": "Asia/Shanghai"
   }
 }
@@ -101,9 +83,9 @@ POST /api/tools/:name/execute
 ```json
 {
   "success": true,
-  "data": {
-    "result": "2024-12-15 14:30:25"
-  }
+  "toolName": "get_current_time",
+  "result": "2024-12-15 14:30:25",
+  "duration": 15
 }
 ```
 
@@ -183,7 +165,7 @@ DELETE /api/tools/custom/:name
 ## 重载工具
 
 ```http
-POST /api/tools/reload
+POST /api/tools/reload-all
 ```
 
 **响应**
@@ -221,7 +203,7 @@ GET /api/tools/logs
   "data": [
     {
       "id": "uuid",
-      "toolName": "get_time",
+      "toolName": "get_current_time",
       "args": {},
       "result": "...",
       "userId": "123",

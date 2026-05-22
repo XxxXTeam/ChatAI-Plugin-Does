@@ -172,7 +172,7 @@ class BuiltinMcpServer {
 
 ```javascript
 {
-  name: 'get_time',
+  name: 'get_current_time',
   description: '获取当前时间',
   category: 'basic',
   

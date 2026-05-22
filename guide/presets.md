@@ -86,8 +86,8 @@ maxTokens: 2048
 tools:
   enabled: true
   allowedTools:
-    - get_time
-    - search_web
+    - get_current_time
+    - web_search
   excludedTools: []
 ```
 

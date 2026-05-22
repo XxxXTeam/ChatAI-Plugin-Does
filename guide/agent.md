@@ -50,18 +50,18 @@ builtinTools:
 
 | 类别 | 图标 | 说明 | 示例工具 |
 |:-----|:----:|:-----|:---------|
-| **basic** | 🔧 | 基础功能 | `get_time`, `calculate` |
-| **user** | 👤 | 用户信息 | `get_user_info`, `get_user_avatar` |
-| **group** | 👥 | 群组信息 | `get_group_info`, `get_member_list` |
-| **message** | � | 消息操作 | `send_message`, `get_chat_history` |
+| **basic** | 🔧 | 基础功能 | `get_current_time`, `calculate` |
+| **user** | 👤 | 用户信息 | `get_user_info`, `get_avatar` |
+| **group** | 👥 | 群组信息 | `get_group_info`, `get_group_member_list` |
+| **message** | MessageSquare | 消息操作 | `send_private_message`, `send_group_message`, `get_chat_history` |
 | **admin** | 🛡️ | 群管理 | `mute_member`, `kick_member` |
 | **groupStats** | 📊 | 群统计 | 发言榜、龙王、不活跃成员 |
 | **file** | 📁 | 文件操作 | 群文件上传下载、本地文件读写 |
 | **media** | 🎨 | 媒体处理 | 图片解析、OCR、二维码生成 |
-| **web** | 🌐 | 网页访问 | `fetch_url`, `web_search` |
-| **search** | � | 搜索工具 | 网页搜索、Wiki查询、翻译 |
+| **web** | 🌐 | 网页访问 | `fetch_url`, `website` |
+| **search** | Search | 搜索工具 | `web_search`、Wiki查询、翻译 |
 | **utils** | 🔨 | 实用工具 | 计算、编码转换、哈希 |
-| **memory** | 🧠 | 记忆管理 | `save_memory`, `search_memory` |
+| **memory** | 🧠 | 记忆管理 | `save_user_memory`, `search_user_memory` |
 | **context** | 📜 | 上下文管理 | 对话上下文、群聊上下文 |
 | **bot** | 🤖 | Bot信息 | 获取机器人状态、好友列表 |
 | **voice** | 🎙️ | 语音/声聊 | TTS语音合成、语音识别 |
@@ -80,7 +80,7 @@ builtinTools:
 ```
 用户: 现在几点了？
 
-AI: [调用 get_time 工具]
+AI: [调用 get_current_time 工具]
     现在是 2024年12月15日 下午3:30。
 ```
 
@@ -129,7 +129,7 @@ tools:
   enabled: true
   # 只允许特定工具
   allowedTools:
-    - get_time
+    - get_current_time
     - get_weather
     - web_search
   # 排除危险工具
@@ -163,7 +163,7 @@ builtinTools:
 危险工具包括：
 - `execute_command` - 执行系统命令
 - `write_file` - 写入文件
-- `modify_config` - 修改配置
+- `set_qq_avatar` - 修改机器人头像（高影响操作）
 
 ## 调试模式
 
@@ -225,7 +225,7 @@ const weather = await agent.execute('get_weather', { city: '北京' })
 
 // 并行执行多个工具
 const results = await agent.executeParallel([
-  { name: 'get_time', args: {} },
+  { name: 'get_current_time', args: {} },
   { name: 'get_weather', args: { city: '北京' } }
 ])
 ```
@@ -256,7 +256,7 @@ builtinTools:
 name: 客服助手
 tools:
   allowedTools:
-    - get_time
+    - get_current_time
     - web_search
     - get_user_info
 
@@ -265,7 +265,7 @@ name: 管理助手
 tools:
   allowedTools:
     - get_group_info
-    - set_group_title
+    - set_group_name
     - kick_member
 ```
 

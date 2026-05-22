@@ -1,5 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://docs.openel.top/sitemap.xml
 Sitemap: https://docs1.chanhanzhan.workers.dev/sitemap.xml

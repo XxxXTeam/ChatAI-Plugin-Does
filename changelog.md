@@ -139,5 +139,5 @@
 ## 反馈
 
 如果你有任何问题或建议，欢迎：
-- 提交 [GitHub Issue](https://github.com/XxxXTeam/chatai-pluginissues)
-- 参与 [Discussions](https://github.com/XxxXTeam/chatai-plugindiscussions)
+- 提交 [GitHub Issue](https://github.com/XxxXTeam/chatai-plugin/issues)
+- 参与 [Discussions](https://github.com/XxxXTeam/chatai-plugin/discussions)

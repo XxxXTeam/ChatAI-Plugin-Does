@@ -36,8 +36,8 @@ tools:
 tools:
   enabled: true
   allowedTools:
-    - get_time
-    - search_web
+    - get_current_time
+    - web_search
 ```
 
 ## 内置工具
@@ -225,12 +225,12 @@ tools:
 ```
 用户: 现在几点了？
 
-AI: [调用 get_time 工具]
+AI: [调用 get_current_time 工具]
     现在是 2024年12月15日 星期日 14:30:25
 
 用户: 帮我搜索一下 Node.js
 
-AI: [调用 search_web 工具，参数: {query: "Node.js"}]
+AI: [调用 web_search 工具，参数: {query: "Node.js"}]
     根据搜索结果，Node.js 是一个基于 Chrome V8 引擎的 JavaScript 运行时...
 ```
 

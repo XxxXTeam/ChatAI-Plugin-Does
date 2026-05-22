@@ -276,7 +276,7 @@ cache:
     ttl: 300
     # 可缓存的工具
     cacheable:
-      - get_time
+      - get_current_time
       - get_weather
 ```
 

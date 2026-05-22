@@ -143,9 +143,9 @@ mcp:
     
     # 工具权限映射
     tools:
-      send_message:
-        require: admin
-      delete_message:
+      send_group_message:
+        require: member
+      recall_message:
         require: admin
 ```
 
@@ -178,7 +178,7 @@ mcp:
     # 可缓存的工具
     tools:
       - get_weather
-      - search_web
+      - web_search
 ```
 
 ## 完整示例

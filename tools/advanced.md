@@ -392,7 +392,7 @@ export default {
     // 并行调用多个工具
     const [weather, time] = await Promise.all([
       agent.execute('get_weather', { city: args.city }),
-      agent.execute('get_time', { timezone: 'Asia/Shanghai' })
+      agent.execute('get_current_time', { timezone: 'Asia/Shanghai' })
     ])
     
     return {
@@ -494,7 +494,7 @@ describe('tool integration', () => {
 ```javascript
 // ✅ 好的命名
 'get_user_info'
-'search_web'
+'web_search'
 'send_notification'
 
 // ❌ 避免

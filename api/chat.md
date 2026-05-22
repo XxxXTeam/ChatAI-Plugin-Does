@@ -58,7 +58,7 @@ data: {"type": "content", "data": "风"}
 
 data: {"type": "content", "data": "又绿"}
 
-data: {"type": "tool_call", "data": {"name": "get_time", "args": {}}}
+data: {"type": "tool_call", "data": {"name": "get_current_time", "args": {}}}
 
 data: {"type": "tool_result", "data": {"result": "..."}}
 

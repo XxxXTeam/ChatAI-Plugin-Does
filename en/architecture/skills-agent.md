@@ -62,15 +62,14 @@ Auto-injects context parameters:
 
 ```javascript
 // Original tool call
-{ name: 'send_message', args: { text: 'Hello' } }
+{ name: 'send_group_message', args: { message: 'Hello' } }
 
 // After injection
 { 
-  name: 'send_message', 
+  name: 'send_group_message', 
   args: { 
-    text: 'Hello',
-    user_id: '123456789',    // Injected
-    group_id: '987654321'    // Injected
+    message: 'Hello',
+    group_id: '987654321'    // Injected or provided
   } 
 }
 ```
@@ -88,7 +87,7 @@ skills:
   permissions:
     shell_execute:
       level: master
-    send_message:
+    send_group_message:
       level: member
 ```
 
@@ -124,7 +123,7 @@ const skills = await skillsAgent.getAvailableSkills({
 
 // Execute skill
 const result = await skillsAgent.executeSkill(
-  'get_time',
+  'get_current_time',
   { format: 'full' },
   context
 )
