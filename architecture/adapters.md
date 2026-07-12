@@ -41,141 +41,95 @@ graph TB
 
 ## 核心特性
 
-- **统一接口** - 所有适配器提供一致的请求/响应接口
-- **工具调用解析** - 支持多种格式（XML/JSON/函数调用）
-- **流式响应** - 支持流式输出
-- **多渠道管理** - 多 API Key 轮询、故障转移、健康检查
-- **模型映射** - 模型重定向与请求头注入
-- **图片预处理** - URL 转 base64
+- **统一接口** - 所有适配器提供一致的请求/响应接口，内部使用统一的 Chaite 消息格式
+- **工具调用解析** - 原生工具调用 + `parseXmlToolCalls` 文本回退解析（支持 `<tools>`/`<tool_call>`/`<function_call>`/`<invoke>`/```json 代码块/裸 JSON 等多种格式，自动修复错误 JSON）
+- **流式响应** - 三家适配器均实现 `streamMessage`
+- **工具调用循环** - `sendMessage` 内置工具调用递归执行、去重（`deduplicateToolCalls`）、并行/串行分流与审批预检
+- **thinking/reasoning** - 三家均支持推理模式（机制不同，见下表）
+- **图片预处理** - `preprocessImageUrls` 将媒体 URL 转 base64（Gemini 模型强制预处理）
+- **多渠道管理** - 多 API Key 轮询、故障转移、健康检查（由 `ChannelManager` 负责）
 
 ## AbstractClient
 
-所有适配器的抽象基类，位于 `src/core/adapters/AbstractClient.js`：
+所有适配器的抽象基类，位于 `src/core/adapters/AbstractClient.js`。
 
-```javascript
-// 核心功能
-export class AbstractClient {
-  constructor(options) {
-    this.options = options
-    this.historyManager = options.historyManager || new DefaultHistoryManager()
-  }
-  
-  // 发送消息（子类实现）
-  async sendMessage(context, option) {
-    throw new Error('Not implemented')
-  }
-  
-  // 流式响应
-  async *streamResponse(context, option) {
-    throw new Error('Not implemented')
-  }
-}
+### 构造函数关键 options
 
-// 工具调用解析（支持多种格式）
-export function parseXmlToolCalls(text) {
-  // 支持 <tools>、<tool_call>、JSON 等多种格式
-  // 自动修复格式错误的 JSON
-}
-```
+`constructor(options, context)` 先经 `BaseClientOptions.create(options)` 规范化，读取字段包括：
+
+- `baseUrl` / `chatPath` / `modelsPath` / `responsePath`（Responses API 路径）/ `endpoints`（`{ chat, models, embeddings, images }`）
+- `apiKey`、`multipleKeyStrategy`（默认 `MultipleKeyStrategyChoice.RANDOM`）
+- `features`、`tools`、`historyManager`、`logger`
+- `toolCallLimitConfig`（默认 `DEFAULT_TOOL_CALL_LIMIT`）、`onMessageWithToolCall`（工具调用中间消息回调）
+
+### 主要方法
+
+| 方法 | 说明 |
+|---|---|
+| `sendMessage(message, options)` | 主入口，含工具调用递归循环 |
+| `_sendMessage(histories, apiKey, options)` | 抽象方法，由子类实现具体请求 |
+| `sendMessageWithHistory(history, options)` | 带历史的发送 |
+| `streamMessage(history, options)` | 流式消息（基类抛未实现，子类覆盖） |
+| `getEmbedding(text, options)` | 文本嵌入（基类抛异常） |
+| `listModels()` / `getModelInfo(modelId)` | 模型列表与信息 |
+| `supportsFeature(feature)` | 基于 `features` 判断能力 |
+| `executeToolCalls(toolCalls, options)` | 工具调用执行（并行/串行分流、审批预检） |
+| `deduplicateToolCalls(toolCalls)` | 工具调用去重 |
+
+### 模块级导出函数
+
+- `parseXmlToolCalls(text)` - 多格式工具调用文本解析器（含去重与 `MAX_TOOL_CALLS = 15` 限制）
+- `preprocessMediaToBase64(histories, options)` / `preprocessImageUrls(histories)` - 媒体转 base64
+- `needsBase64Preprocess(model)` / `needsImageBase64Preprocess(model)` - 模型名含 `gemini` 时返回 true
 
 ## OpenAIClient
 
-支持 OpenAI API 及所有兼容接口：
+`class OpenAIClient extends AbstractClient`（`this.name = 'openai'`），基于 `openai` SDK，支持 OpenAI API 及所有兼容接口。
 
-```javascript
-// src/core/adapters/openai/OpenAIClient.js
-import OpenAI from 'openai'
-import { AbstractClient } from '../AbstractClient.js'
+### Chat Completions 与 Responses 双模式
 
-export class OpenAIClient extends AbstractClient {
-  constructor(options) {
-    super(options)
-    this.client = new OpenAI({
-      apiKey: options.apiKey,
-      baseURL: options.baseUrl
-    })
-  }
-  
-  async sendMessage(context, option) {
-    // 转换消息格式
-    const messages = this.convertMessages(context.history)
-    
-    // 调用 API
-    const response = await this.client.chat.completions.create({
-      model: option.model,
-      messages,
-      tools: option.tools,
-      stream: option.stream
-    })
-    
-    return this.parseResponse(response)
-  }
-}
-```
+接口模式由 `getOpenAIInterfaceMode` 读取 `apiInterface`（默认 `'chat'`）决定：
+
+- **Chat Completions**（默认）：`client.chat.completions.create`，支持流式增量聚合（content / reasoning_content / tool_calls，含 `<think>` 标签剥离）
+- **Responses API**：`shouldUseOpenAIResponses` 判定模式为 `'responses'`/`'response'` 时启用，完整管线含 `buildResponsesPayload`、`responsesOutputToChatCompletion`、流式事件状态机 `applyResponsesStreamEvent`（覆盖 text/reasoning/function_call/mcp/code_interpreter/web_search/image_generation 等事件）
+- **实验性 WebSocket Responses**：`createResponsesViaSdkWebSocket` 通过动态加载 `ResponsesWS` 实现，由 `shouldUseExperimentalOpenAIWs` 判定，失败自动回退 HTTP
+
+### reasoning/thinking
+
+`mergeOpenAIReasoningOptions` 读取 `enableReasoning`、`reasoningEffort`（默认 `'low'`）、`thinkingVendorControl`（默认 `'auto'`）。合法 effort 集合：`none/minimal/low/medium/high/xhigh`。
+
+- Chat 模式写入 `reasoning_effort` 与 `max_completion_tokens`
+- Responses 模式写入 `reasoning.effort`
+- 厂商 thinking（智谱/GLM/BigModel）：`applyVendorThinkingPayload` 在 baseUrl 命中 `bigmodel/zhipu/glm/maas` 或 `thinkingVendorControl==='glm'` 时写入 `thinking = { type: 'enabled'|'disabled' }`
 
 ## ClaudeClient
 
-支持 Anthropic Claude API：
+`class ClaudeClient extends AbstractClient`（`this.name = 'claude'`），基于 `@anthropic-ai/sdk`。
 
-```javascript
-// src/core/adapters/claude/ClaudeClient.js
-import Anthropic from '@anthropic-ai/sdk'
-import { AbstractClient } from '../AbstractClient.js'
-
-export class ClaudeClient extends AbstractClient {
-  constructor(options) {
-    super(options)
-    this.client = new Anthropic({
-      apiKey: options.apiKey
-    })
-  }
-  
-  async sendMessage(context, option) {
-    // Claude 使用不同的消息格式
-    const { system, messages } = this.convertToClaude(context.history)
-    
-    const response = await this.client.messages.create({
-      model: option.model,
-      max_tokens: option.maxTokens || 4096,
-      system,
-      messages,
-      tools: this.convertTools(option.tools)
-    })
-    
-    return this.parseClaudeResponse(response)
-  }
-}
-```
+- **端点**：`buildClaudeClientOptions` + `normalizeClaudeEndpointPath`（自动补 `/v1` 前缀）
+- **thinking**：`getClaudeThinkingConfig` 在 `enableReasoning` 且 `maxTokens > 1024` 时返回 `{ type: 'enabled', budget_tokens }`（`budget_tokens` 取 `reasoningBudgetTokens`，默认为 `maxTokens/2`，并夹在 `[1024, maxTokens-1]`）
+- **streaming**：`streamMessage` 设 `stream = true`，处理 `content_block_start`(tool_use)、`content_block_delta`(text_delta/input_json_delta)
+- **tool calling**：`getFromChaiteToolConverter('claude')` + `resolveToolChoice(..., 'claude')`，文本回退 `parseXmlToolCalls`
+- **嵌入**：`getEmbedding` 明确不支持（抛异常）
+- **模型列表**：`listModels`/`getModelInfo` API 失败时回退内置列表
 
 ## GeminiClient
 
-支持 Google Gemini API：
+`class GeminiClient extends AbstractClient`（`this.name = 'gemini'`），基于 `@google/generative-ai`。
 
-```javascript
-// src/core/adapters/gemini/GeminiClient.js
-import { GoogleGenerativeAI } from '@google/generative-ai'
-import { AbstractClient } from '../AbstractClient.js'
+- **安全设置**：四类 `HarmCategory` 全部 `BLOCK_NONE`
+- **thinking**：`getGeminiThinkingConfig` 在 `enableReasoning` 时按 effort 映射预算（`minimal:256 / low:1024 / medium:4096 / high:8192 / xhigh:16384`），写入 `generationConfig.thinkingConfig.thinkingBudget`；用量统计读取 `thoughtsTokenCount`
+- **streaming**：`streamMessage` 用 `generateContentStream`，逐 chunk `chunk.text()`，聚合 `chunk.functionCalls()`
+- **tool calling**：以 `[{ functionDeclarations: tools }]` 形式传入，`normalizeGeminiToolConfig` 映射 `functionCallingConfig.mode`（AUTO/ANY/NONE）；文本回退 `parseXmlToolCalls`
+- **嵌入**：`getEmbedding` **支持**（默认模型 `text-embedding-004`）
 
-export class GeminiClient extends AbstractClient {
-  constructor(options) {
-    super(options)
-    this.genAI = new GoogleGenerativeAI(options.apiKey)
-  }
-  
-  async sendMessage(context, option) {
-    const model = this.genAI.getGenerativeModel({
-      model: option.model
-    })
-    
-    const chat = model.startChat({
-      history: this.convertToGemini(context.history)
-    })
-    
-    const result = await chat.sendMessage(context.lastMessage)
-    return this.parseGeminiResponse(result)
-  }
-}
-```
+## thinking / reasoning 机制对比
+
+| 适配器 | 开关字段 | 预算/强度参数 | 底层字段 |
+|---|---|---|---|
+| OpenAI | `enableReasoning` | `reasoningEffort`（none~xhigh） | `reasoning_effort` / `reasoning.effort`；厂商 `thinking.type` |
+| Claude | `enableReasoning` | `reasoningBudgetTokens`（默认 maxTokens/2） | `thinking.budget_tokens` |
+| Gemini | `enableReasoning` | effort→预算映射 或 `reasoningBudgetTokens` | `thinkingConfig.thinkingBudget` |
 
 ## 消息格式转换
 
@@ -197,19 +151,38 @@ const chaiteMessages = getIntoChaiteConverter('openai')(openaiMessages)
 
 ```javascript
 // src/core/adapters/index.js
-export { AbstractClient, parseXmlToolCalls } from './AbstractClient.js'
+// 从 AbstractClient.js 重导出
+export {
+  AbstractClient,
+  parseXmlToolCalls,
+  preprocessMediaToBase64,
+  preprocessImageUrls,
+  needsBase64Preprocess,
+  needsImageBase64Preprocess
+} from './AbstractClient.js'
+
+// 三个适配器类
 export { OpenAIClient } from './openai/OpenAIClient.js'
 export { GeminiClient } from './gemini/GeminiClient.js'
 export { ClaudeClient } from './claude/ClaudeClient.js'
 
-// 转换器注册
+// 导入 converter.js 触发转换器注册（副作用）
+import './openai/converter.js'
+import './gemini/converter.js'
+import './claude/converter.js'
+
+// 从 utils/converter.js 重导出转换器注册/获取函数
 export {
   registerFromChaiteConverter,
+  registerFromChaiteToolConverter,
   registerIntoChaiteConverter,
   getFromChaiteConverter,
+  getFromChaiteToolConverter,
   getIntoChaiteConverter
 } from '../utils/converter.js'
 ```
+
+> `tooling.js` 提供跨供应商的工具定义与 tool_choice 归一化（`resolveToolChoice`、`toOpenAIChatTool`/`toClaudeTool`/`toGeminiTool`、`attachToolMetadata` 等），由各适配器直接 import，不经 `index.js` 导出。
 
 ## 调用流程
 
@@ -253,26 +226,30 @@ flowchart TD
 ```mermaid
 classDiagram
     class AbstractClient {
-        +constructor(options)
-        +sendMessage(context, option)
-        +streamMessage(context, option)
-        +parseXmlToolCalls(text)
-        +preprocessImageUrls(messages)
+        +sendMessage(message, options)
+        +streamMessage(history, options)
+        +_sendMessage(histories, apiKey, options)
+        +executeToolCalls(toolCalls, options)
+        +deduplicateToolCalls(toolCalls)
+        +supportsFeature(feature)
     }
     
     class OpenAIClient {
         +_sendMessage(histories, apiKey, options)
         +streamMessage(histories, options)
+        +buildResponsesPayload(...)
     }
     
     class GeminiClient {
         +_sendMessage(histories, apiKey, options)
-        +convertToGemini(messages)
+        +streamMessage(history, options)
+        +getEmbedding(text, options)
     }
     
     class ClaudeClient {
         +_sendMessage(histories, apiKey, options)
-        +convertToClaude(messages)
+        +streamMessage(history, options)
+        +listModels()
     }
     
     OpenAIClient --|> AbstractClient

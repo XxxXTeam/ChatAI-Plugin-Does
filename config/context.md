@@ -178,3 +178,84 @@ context:
 
 - [记忆配置](./memory) - 长期记忆系统
 - [MCP 配置](./mcp) - MCP 服务器配置
+
+## 上下文压缩配置
+
+当对话上下文达到阈值时，系统会自动压缩对话并重载 skills（由 `ContextManager` 实现）。
+
+::: warning 这些是可选配置项
+以下压缩相关字段**默认不存在于 `config/config.yaml`**，如需自定义需手动添加到 `context` 段。
+未配置时，系统使用 `ContextManager.getContextConfig()` 中定义的内置默认值（见下表）。
+:::
+
+### 触发条件
+
+压缩是否触发由 `maxTokens` 与 `maxMessages` 共同决定（源码 `ContextManager.checkAndCompress()`）：
+
+- 当 `maxTokens > 0` 时：估算当前消息 token 数，超过 `maxTokens × compressionThreshold` 即触发压缩。
+- 当 `maxTokens` 未配置或为 `0` 时：跳过 token 判断，改用消息数判断——非 system 消息数超过 `maxMessages` 即触发。
+
+> `maxTokens`、`maxMessages` 复用 [基础配置](#基础配置) 中的同名字段，无需重复定义。
+
+### 可选配置项与默认值
+
+```yaml
+context:
+  # 压缩触发阈值（0-1，达到 maxTokens 的百分比时触发），默认 0.8
+  compressionThreshold: 0.8
+
+  # 压缩策略，默认 summarize
+  # - summarize: 使用 AI 总结旧消息（推荐）
+  # - truncate: 直接截断旧消息
+  # - sliding-window: 滑动窗口保留最近消息
+  compressionStrategy: summarize
+
+  # 压缩时保留系统提示，默认 true
+  preserveSystemPrompt: true
+
+  # 压缩时保留最近消息数，默认 4
+  preserveRecentMessages: 4
+
+  # 压缩后自动重载 skills 注入，默认 true
+  autoReloadSkills: true
+```
+
+### 配置参数
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `compressionThreshold` | number | `0.8` | 触发压缩的阈值比例（相对 `maxTokens`）|
+| `compressionStrategy` | string | `summarize` | 压缩策略 |
+| `preserveSystemPrompt` | boolean | `true` | 保留 system prompt（设为 `false` 才关闭）|
+| `preserveRecentMessages` | number | `4` | 压缩时保留的最近消息数 |
+| `autoReloadSkills` | boolean | `true` | 压缩后重载 skills（设为 `false` 才关闭）|
+
+> 说明：`preserveSystemPrompt` 与 `autoReloadSkills` 在源码中以 `!== false` 判断，即只要不显式写为 `false` 一律视为启用。
+
+### 完整配置示例
+
+以下示例展示了在 `context` 段中同时启用压缩所需的全部字段（含复用的 `maxTokens`）：
+
+```yaml
+context:
+  maxMessages: 20
+  maxTokens: 8000            # 必须 > 0 才会启用 token 阈值压缩
+  compressionThreshold: 0.8
+  compressionStrategy: summarize
+  preserveSystemPrompt: true
+  preserveRecentMessages: 4
+  autoReloadSkills: true
+```
+
+### 压缩策略说明
+
+- **summarize**: 使用 LLM 对旧消息生成摘要，保留关键信息，适合长对话
+- **truncate**: 直接丢弃超出部分的消息，简单但可能丢失重要上下文
+- **sliding-window**: 保留最近 N 条消息，自动滑动窗口
+
+### Skills 自动重注入
+
+压缩后系统会自动:
+1. 检测当前会话已加载的 skills
+2. 重新将 skills 指令注入到 system prompt
+3. 确保 AI 在压缩后仍然具备技能上下文

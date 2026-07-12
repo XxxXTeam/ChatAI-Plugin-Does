@@ -138,6 +138,92 @@ const agent = await createSkillsAgent({
 })
 ```
 
+## 工具审批 {#tool-approval}
+
+除静态的类别/预设过滤外，系统还提供**运行时工具审批**机制（`src/services/tools/ToolApprovalService.js`）。当模型请求执行工具时，`preflight` 会逐个进行归属校验、权限校验、参数校验和风险分级，再根据审批模式决定放行、拦截或向用户发起确认。
+
+### 审批模式 {#approval-mode}
+
+审批模式由 `builtinTools.approvalMode` 控制，可选值 `ask`、`auto`、`confirm_all`、`yolo`，无效值回退为 `auto`。
+
+| 模式 | 行为 |
+|:-----|:-----|
+| `ask` | 拦截所有工具，一律不执行（返回"ask 模式不执行工具"），仅让模型知道有哪些工具可用 |
+| `auto` | **默认**。低风险工具自动放行；中风险、高风险工具需用户确认 |
+| `confirm_all` | 所有工具（含低风险）都需用户确认后才执行 |
+| `yolo` | 全部自动放行，跳过所有确认 |
+
+::: tip 单次调用覆盖
+`preflight` 支持通过 `options.toolApprovalMode` 在单次请求内覆盖全局 `approvalMode`。
+:::
+
+### 风险分级 {#risk-classification}
+
+每个工具在审批前会被划分为 `low` / `medium` / `high` 三级，判定顺序如下（前者优先）：
+
+1. **配置精确匹配**：命中 `approvalHighRiskTools` / `approvalMediumRiskTools` / `approvalLowRiskTools`（按工具名或 identity 匹配）直接采用对应等级
+2. **高风险判定**：工具自身 `dangerous` 标记、命中 `builtinTools.dangerousTools`、或属于内置高风险集合（如 `kick_member`、`mute_member`、`recall_message`、`set_group_admin`、`write_file`、`delete_file`、`execute_command` 等）
+3. **中风险判定**：属于内置中风险集合，或工具名匹配 `send_*`、`*_message`、`file`、`url`、`webpage`、`download`、`memory`、`context`、`image`、`voice`、`media` 等启发式规则
+4. **低风险判定**：属于内置低风险集合，或工具名匹配 `get_*`、`list_*`、`search_*`、`query_*`、`calculate` 等只读/计算类前缀
+5. **兜底**：未命中任何规则时默认为 `medium`
+
+::: info 内置默认分级（部分）
+- **低风险**：`get_time`、`get_date`、`get_system_info`、`calculate`、`web_search`、`get_weather` 等
+- **中风险**：`send_message`、`send_group_message`、`read_file`、`fetch_url`、`generate_image`、`save_memory` 等
+- **高风险**：`kick_member`、`mute_member`、`recall_message`、`set_group_admin`、`write_file`、`delete_file`、`execute_command` 等
+:::
+
+### 审批交互与超时 {#approval-interaction}
+
+需要确认的工具会汇总为一条提示消息（通过 `event.reply` 发送），列出工具名、风险等级和脱敏后的参数摘要。用户可回复以下指令进行响应：
+
+| 回复 | 动作 |
+|:-----|:-----|
+| `确认` / `确认工具` | 放行本次待确认的工具调用 |
+| `取消` / `拒绝` | 取消执行（返回"用户取消"）|
+| `允许本对话` | 放行并对本会话内同一工具建立豁免 |
+| `确认工具 <8位ID>` / `取消工具 <8位ID>` | 针对指定审批 ID 精确响应 |
+
+::: warning 超时处理
+审批等待时间由 `builtinTools.approvalTimeoutMs` 控制（默认 `60000` 毫秒）。超时未响应视为拒绝，工具不执行（返回"确认超时"）。若当前环境无 `event.reply`（无法发起确认），需要确认的工具会被直接拦截。
+:::
+
+::: tip 参数脱敏
+审批提示中的参数会自动脱敏：键名匹配 `api_key`、`token`、`password`、`secret`、`authorization`、`cookie`、`key` 的值替换为 `***`；超长字符串截断至 160 字符，整体摘要截断至 500 字符。
+:::
+
+### 会话豁免 {#session-bypass}
+
+当用户选择"允许本对话"时，系统会为该工具在当前会话建立豁免，后续同一工具调用无需再次确认。
+
+- 豁免作用域键为 `conversationId:groupId:userId`，即同一会话、同一群、同一用户
+- 是否允许豁免由 `approvalAllowSessionBypass` 控制（默认 `true`）
+- 可豁免的最高风险由 `approvalSessionBypassMaxRisk` 控制（默认 `medium`）：仅风险等级不超过该值的工具可被会话豁免，高风险工具即使选择"允许本对话"也不会建立豁免
+
+### 审批配置 {#approval-config}
+
+```yaml
+builtinTools:
+  # 审批模式：ask / auto / confirm_all / yolo
+  approvalMode: auto
+  # 审批等待超时（毫秒），超时视为拒绝
+  approvalTimeoutMs: 60000
+  # 强制指定各风险等级的工具（按工具名或 identity 匹配，优先级最高）
+  approvalLowRiskTools: []
+  approvalMediumRiskTools: []
+  approvalHighRiskTools: []
+  # 始终跳过审批的工具（yolo 之外的白名单）
+  approvalBypassTools: []
+  # 是否允许"允许本对话"会话豁免
+  approvalAllowSessionBypass: true
+  # 可会话豁免的最高风险等级：low / medium / high
+  approvalSessionBypassMaxRisk: medium
+```
+
+::: info approvalBypassTools 与 yolo 的区别
+`approvalBypassTools` 是针对具体工具的白名单，在任何模式下（`ask` 除外）命中即放行，无论其风险等级；`yolo` 则是对所有工具全局放行。
+:::
+
 ## 管理员工具
 
 ### 标记管理员专属

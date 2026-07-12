@@ -197,14 +197,47 @@ loadBalancing:
 
 ## thinking 思考配置
 
+思考（推理）相关的全局配置，控制模型是否输出思考过程及推理强度。该段为全局默认值，可被预设、渠道、单次请求逐级覆盖（源码 `src/services/llm/ThinkingOptions.js` 的 `resolveThinkingOptions`，优先级：请求 > 预设 > 渠道 > 全局）。
+
 ```yaml
 thinking:
+  # 思考功能总开关，为 false 时强制关闭推理
   enabled: false
-  defaultLevel: low       # low | medium | high
+
+  # 默认推理强度: low | medium | high
+  defaultLevel: low
+
+  # 是否默认开启推理（需 enabled 不为 false 才生效）
   enableReasoning: false
+
+  # 推理 token 预算（0 表示不限制/不单独设置）
+  reasoningBudgetTokens: 0
+
+  # 是否向用户展示思考内容
   showThinkingContent: true
+
+  # 思考内容是否使用合并转发消息发送
   useForwardMsg: true
 ```
+
+### 参数说明
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `enabled` | boolean | `false` | 思考功能总开关。为 `false` 时无论其他项如何都强制关闭推理 |
+| `defaultLevel` | string | `low` | 默认推理强度，可选 `low` / `medium` / `high` |
+| `enableReasoning` | boolean | `false` | 是否默认开启推理，仅在 `enabled` 不为 `false` 时生效 |
+| `reasoningBudgetTokens` | number | `0` | 推理 token 预算，仅当为正整数时生效，`0` 表示不单独限制 |
+| `showThinkingContent` | boolean | `true` | 是否向用户展示模型的思考过程内容 |
+| `useForwardMsg` | boolean | `true` | 展示思考内容时是否以合并转发消息发送 |
+
+::: tip 关于 vendorThinkingControl（可选项）
+源码 `resolveThinkingOptions` 还支持 `vendorThinkingControl` 字段（默认 `auto`，可选 `auto` / `off` / `glm`），用于智谱等厂商需在请求体中传 `thinking.type` 的场景。该字段默认不在 `config.yaml` 的 `thinking` 段中，如需全局设置可手动添加 `thinking.vendorThinkingControl`，也可在渠道高级配置中单独指定。
+:::
+
+::: warning enabled 与 enableReasoning 的关系
+两者需配合使用：`enabled: false` 会直接短路关闭推理；只有当 `enabled` 不为 `false` 且 `enableReasoning: true`（或由预设/渠道/请求逐级覆盖为 `true`）时，才会真正开启推理。
+:::
 
 ## 完整示例
 

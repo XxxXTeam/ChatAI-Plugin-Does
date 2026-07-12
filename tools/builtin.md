@@ -1,4 +1,4 @@
-# 内置工具 <Badge type="info" text="22 Categories" />
+# 内置工具 <Badge type="info" text="24 Categories" />
 
 内置工具是插件核心功能的一部分，位于 `src/mcp/tools/` 目录，由 `BuiltinMcpServer` 管理。
 
@@ -34,11 +34,13 @@ src/mcp/tools/
 ├── bltools.js       # 扩展工具集
 ├── reminder.js      # 定时提醒
 ├── imageGen.js      # 绘图服务
-└── qzone.js         # QQ空间/说说
+├── qzone.js         # QQ空间/说说
+├── emoji.js         # 表情包管理
+└── skills.js        # Skills 技能管理
 ```
 :::
 
-## 工具类别（22个）{#categories}
+## 工具类别（24个）{#categories}
 
 ::: info 类别说明
 每个类别包含多个相关工具，可按类别整体启用/禁用。
@@ -68,6 +70,8 @@ src/mcp/tools/
 | `reminder` | 定时提醒 | 设置定时提醒，支持相对/绝对时间、重复 | 🟢 安全 |
 | `imageGen` | 绘图服务 | AI绘图生成，支持文生图、图生图、文生视频、图生视频 | 🟢 安全 |
 | `qzone` | QQ空间/说说 | 发布说说、获取说说列表、点赞、删除说说、个性签名等 | 🟡 中等 |
+| `emoji` | 表情包管理 | 保存表情包、发送已存表情、列出表情库 | 🟢 安全 |
+| `skills` | Skills 技能管理 | 查看、加载、卸载文档技能，供模型按需启用 skill | 🟢 安全 |
 
 ::: danger shell 类别警告
 `shell` 类别可执行系统命令，存在安全风险。建议仅在可信环境下启用，并限制为主人权限。

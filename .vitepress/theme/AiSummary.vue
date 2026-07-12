@@ -1,13 +1,4 @@
 <script setup>
-/**
- * AI 页面摘要组件
- * 
- * 功能：
- * - AI 摘要：点击展开请求 AI 总结当前页面
- * - 章节导航：提取页面标题快速跳转
- * - 关联文档：根据侧边栏配置推荐同组文档
- * - 源文件：显示当前页面的 Markdown 源文件路径
- */
 import { ref, watch, computed, onMounted, nextTick } from 'vue'
 import { useData, useRoute } from 'vitepress'
 

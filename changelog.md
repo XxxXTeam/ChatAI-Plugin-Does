@@ -2,6 +2,34 @@
 
 本文档记录 ChatAI Plugin 的版本更新历史。
 
+## [1.3.0] - 2026-07
+
+### 新增
+
+- ✨ **Skills 文件系统** - `SkillDocumentLoader` 支持扫描 `SKILL.md`、`*.skill.yaml`、`*.skill.json` 三种格式；可配置扫描路径 `paths`、递归深度 `maxDepth`（默认 6）、单文件大小上限 `maxFileBytes`（默认 64KB），并按真实路径去重避免软链接重复加载
+- ✨ **Skills 懒加载机制** - `SkillsLoader` 区分 `exposedSkills`（仅暴露名称+描述的技能清单）与 `loadedSkills`（已完整注入会话上下文的技能），按需加载完整技能内容，降低上下文占用
+- ✨ **Skills 内置工具** - 新增 `list_skills`（列出可用技能）、`load_skill`（按名称加载技能到当前会话）、`get_skill_info`（查看技能详情）三个内置工具
+- ✨ **上下文压缩** - `ContextManager` 支持三种压缩策略：`summarize`（总结压缩，默认）、`truncate`（截断）、`sliding-window`（滑动窗口）；按 Token 阈值（`compressionThreshold` 默认 0.8）或消息数阈值触发
+- ✨ **压缩后 Skills 自动重注入** - 上下文压缩后通过 `reinjectSkills` 自动将已加载技能重新注入，避免压缩丢失技能约束
+- ✨ **错误通知服务（ErrorNotifier）** - API 错误时统一通知，支持群聊、私聊主人（`admin.masterQQ`）两类通知目标，基于 `cooldownMap` 按错误类型冷却去重（默认冷却 60 秒），已集成至聊天错误处理链路
+- ✨ **SSE 工具测试** - 工具测试改为 SSE 模式，防止长耗时请求导致前端超时或 UI 挂起
+- ✨ **MCP 超时配置** - 支持 `streamable-http` 传输类型，新增细分超时配置（`connect`/`request`/`sseConnect`/`sseEndpoint`/`startup`/`ping`/`heartbeat`/`terminate`），兼容旧版 `timeout` 单字段
+
+### 改进
+
+- ⚡ **适配器 Skills 支持重构** - 重构 OpenAI 适配器，完善前后端 API 功能
+- ⚡ **前端渲染修复** - 工具测试页自适应缩放，修复多处页面渲染错位问题
+- ⚡ 嵌套模型选择器 Dialog，避免关闭内层时误关外层渠道表单
+
+### 修复
+
+- 🐛 **Debug 模式错误信息保留** - API 错误时在抛出前同步 `switchChain`、`totalRetryCount`、`channelSwitched` 等 debug 信息，避免 debug 信息丢失
+- 🐛 修复部分 API 场景下传递了不支持的系统消息角色导致的调用出错问题，支持自定义系统角色
+- 🐛 修复模型出现工具调用处理错误的问题
+- 🐛 修复图片转换处理实现
+
+---
+
 ## [1.2.0] - 2026-02
 
 ### 新增

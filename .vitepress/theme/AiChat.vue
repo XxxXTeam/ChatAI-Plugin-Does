@@ -1,16 +1,4 @@
 <script setup>
-/**
- * AI 文档问答助手组件（右侧面板样式）
- * 
- * 功能：
- * - 右侧固定全高面板（类似 Windsurf Docs Assistant）
- * - 右下角浮动触发按钮
- * - 流式响应展示
- * - 复制回答按钮
- * - 新建对话按钮
- * - 适配 VitePress 深色/浅色主题
- * - 示例问题引导
- */
 import { ref, nextTick, onMounted, onUnmounted, computed } from 'vue'
 
 /* ==================== 配置 ==================== */

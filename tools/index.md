@@ -10,7 +10,7 @@ ChatAI Plugin 基于 **MCP (Model Context Protocol)** 标准实现工具系统�
 
 | 来源 | 位置 | 说明 | 热重载 |
 |:-----|:-----|:-----|:------:|
-| **内置工具** | `src/mcp/tools/` | 核心功能，22个类别模块化组织 | ✅ |
+| **内置工具** | `src/mcp/tools/` | 核心功能，24个类别模块化组织 | ✅ |
 | **自定义 JS** | `data/tools/` | 用户脚本，无需修改源码 | ✅ |
 | **外部 MCP** | `data/mcp-servers.json` | npm 包或远程服务器 | ❌ |
 
@@ -24,6 +24,189 @@ graph LR
     D --> F
     E --> F
 ```
+
+## Skills 文件系统 {#skills-files}
+
+除了上述三种工具来源，系统还支持从 `data/skills` 目录加载技能文档：
+
+| 文件格式 | 说明 | 自动激活 |
+|---------|------|:-------:|
+| `SKILL.md` | Markdown frontmatter + 指令正文 | 按 autoActivate 配置 |
+| `*.skill.yaml` | YAML 格式技能定义 | 按 autoActivate 配置 |
+| `*.skill.json` | JSON 格式技能定义 | 按 autoActivate 配置 |
+
+### 技能加载机制
+
+1. **默认暴露**: 系统启动时扫描所有技能文件，只暴露技能列表（名称+描述）
+2. **显式加载**: 模型通过 `load_skill` 工具请求加载完整技能内容
+3. **自动注入**: `autoActivate: true` 的技能在对话开始时自动注入
+4. **上下文重载**: 上下文压缩后自动重新注入已加载的技能
+
+### 扫描路径
+
+默认扫描以下目录：
+- `data/skills/` - 主要技能目录
+- `.cursor/skills/` - IDE 技能目录
+- `.claude/skills/` - Claude Code 技能目录
+- `.codex/skills/` - Codex 技能目录
+
+## Skills 配置文件 {#skills-yaml}
+
+Skills 模块的完整配置集中在 `data/skills.yaml`（由 `src/services/skills/SkillsConfig.js` 加载与校验），与 MCP 服务器配置解耦。文件不存在时会以默认值自动创建，且支持热重载（`hasChanged()` 检测 mtime 变化后 `reload()`）。所有配置均位于顶层 `skills` 键下。
+
+### 顶层结构 {#skills-yaml-overview}
+
+```yaml
+skills:
+  enabled: true          # 是否启用 Skills 模块
+  mode: 'hybrid'         # 工作模式：hybrid / skills-only / mcp-only
+  sources: {...}         # 工具源配置
+  groups: [...]          # 工具组配置
+  execution: {...}       # 工具执行配置
+  dispatch: {...}        # 调度配置（轻量模型预筛工具组）
+  documents: {...}       # SKILL.md 文档技能配置
+  security: {...}        # 危险工具安全配置
+```
+
+### 工作模式 mode {#skills-yaml-mode}
+
+| 取值 | 说明 |
+|:-----|:-----|
+| `hybrid` | **默认**。同时加载 Skills 配置的工具（内置 + 自定义 JS）和 MCP 服务器工具 |
+| `skills-only` | 仅加载 Skills 配置的工具，忽略 MCP 服务器（`isMcpEnabled()` 返回 `false`）|
+| `mcp-only` | 仅加载 MCP 服务器工具，忽略内置与自定义 JS 工具（兼容旧行为）|
+
+::: info 无效值回退
+`mode` 仅接受上述三个取值，配置为其他值时会在校验阶段告警并回退为 `hybrid`。
+:::
+
+### 工具源 sources {#skills-yaml-sources}
+
+三种工具来源可独立启用/禁用，并各自维护禁用工具列表：
+
+```yaml
+sources:
+  builtin:                 # 内置工具
+    enabled: true
+    categories: []         # 启用的类别列表（空数组 = 启用全部）
+    disabledTools: []      # 禁用的工具（优先级高于 categories）
+  custom:                  # 自定义 JS 工具
+    enabled: true
+    path: 'data/tools'     # JS 工具目录（相对插件根目录）
+    autoReload: true       # 文件变更自动重载
+  mcp:                     # 外部 MCP 服务器工具
+    enabled: true
+    servers: []            # 启用的服务器列表
+    disabledServers: []    # 禁用的服务器列表
+```
+
+::: tip disabledTools 合并
+`getDisabledTools()` 会去重合并 `builtin`、`custom`、`mcp` 三个来源各自的 `disabledTools`，任一来源禁用即全局禁用。
+:::
+
+### 工具组 groups {#skills-yaml-groups}
+
+`groups` 将工具按功能划分为逻辑组，供调度和权限管理使用。用户配置的 `groups` 会**完全替换**默认值（而非合并）。
+
+```yaml
+groups:
+  - index: 0                    # 组索引（唯一）
+    name: 'basic'               # 组名称（唯一）
+    description: '基础工具：获取时间、日期、农历、节日、系统环境信息等'
+    tools: ['get_current_time', 'get_lunar_date', ...]  # 工具名列表
+    enabled: true               # 是否启用该组
+  - index: 6
+    name: 'admin'
+    description: '群管理：禁言、踢人、设置群名片/头衔、发送公告等'
+    tools: ['mute_member', 'kick_member', ...]
+    enabled: true
+    requiredPermission: 'admin' # 该组所需权限（可选）
+  - index: 17
+    name: 'shell'
+    description: '系统命令（危险工具）'
+    tools: ['execute_command', 'get_system_info', ...]
+    enabled: false              # 危险组默认关闭
+    requiredPermission: 'master'
+```
+
+| 字段 | 类型 | 说明 |
+|:-----|:-----|:-----|
+| `index` | `number` | 组索引，可通过 `getGroupByIndex()` 检索 |
+| `name` | `string` | 组名称，可通过 `getGroupByName()` 检索；缺失时告警 |
+| `description` | `string` | 组说明 |
+| `tools` | `string[]` | 组内工具名列表；非数组时会被重置为 `[]` |
+| `enabled` | `boolean` | 是否启用；`getEnabledGroups()` 过滤 `enabled !== false` |
+| `requiredPermission` | `string` | 该组所需权限（如 `admin`、`master`），可选 |
+
+### 文档技能 documents {#skills-yaml-documents}
+
+控制 `SKILL.md` 等文档技能的扫描与注入行为（对应 [Skills 文件系统](#skills-files)）：
+
+```yaml
+documents:
+  enabled: true
+  mode: 'auto'                  # auto / all / explicit
+  paths:                        # 扫描目录列表
+    - 'data/skills'
+    - '.cursor/skills'
+    - '.claude/skills'
+    - '.codex/skills'
+  maxDepth: 6                   # 目录递归最大深度
+  maxFileBytes: 65536           # 单个技能文件最大字节数（<1024 时重置为 1024）
+  maxPromptChars: 20000         # 注入 system prompt 的最大字符数（<1000 时重置为 1000）
+```
+
+| `mode` | 匹配行为 |
+|:-------|:---------|
+| `auto` | **默认**。按上下文文本匹配技能的 name/description/relativePath/triggers |
+| `all` | 未显式指定时注入全部技能 |
+| `explicit` | 仅注入 `selectedNames` 显式选中的技能 |
+
+::: warning 无效值回退
+`mode` 非 `auto`/`all`/`explicit` 时回退默认；`paths` 非数组、`maxDepth < 0` 时均回退默认值。
+:::
+
+### 执行配置 execution {#skills-yaml-execution}
+
+```yaml
+execution:
+  timeout: 30000        # 单工具超时（毫秒），<1000 时重置为 1000
+  maxParallel: 5        # 最大并行数，<1 重置为 1，>20 重置为 20
+  retryOnError: false   # 出错是否重试
+  maxRetries: 2         # 重试次数
+  cacheResults: true    # 是否缓存结果
+  cacheTTL: 60000       # 缓存有效期（毫秒）
+```
+
+### 调度配置 dispatch {#skills-yaml-dispatch}
+
+启用后先用轻量模型判断需要哪些工具组，减少 token 消耗：
+
+```yaml
+dispatch:
+  enabled: false        # 默认关闭，可在管理面板启用
+  useSummary: true      # 使用工具组摘要参与判断
+  maxGroups: 3          # 最多选取的工具组数量
+```
+
+### 安全配置 security {#skills-yaml-security}
+
+```yaml
+security:
+  dangerousTools:               # 危险工具列表
+    - kick_member
+    - mute_member
+    - recall_message
+    - write_file
+    - delete_file
+    - execute_command
+  allowDangerous: false         # 是否允许执行危险工具
+  dangerousRequiredPermission: 'master'  # 危险工具所需权限
+```
+
+::: tip 与工具审批的关系
+`security.dangerousTools` 会影响 [工具审批](./security#tool-approval) 的风险分级：命中列表的工具会被判定为高风险。危险工具的执行还需满足 `allowDangerous` 与 `dangerousRequiredPermission` 约束。
+:::
 
 ## 工具定义格式 {#tool-format}
 

@@ -303,6 +303,8 @@ export default withMermaid({
             { text: '模型配置', link: '/config/models' },
             { text: '触发配置', link: '/config/triggers' },
             { text: '上下文配置', link: '/config/context' },
+            { text: '人格隔离配置', link: '/config/personality' },
+            { text: '工具组配置', link: '/config/tool-groups' },
             { text: '记忆配置', link: '/config/memory' },
             { text: 'MCP 配置', link: '/config/mcp' },
             { text: '代理配置', link: '/config/proxy' },
@@ -314,6 +316,7 @@ export default withMermaid({
           items: [
             { text: '功能配置', link: '/config/features' },
             { text: '伪人配置', link: '/config/bym' },
+            { text: '错误通知', link: '/config/error-notify' },
             { text: '高级配置', link: '/config/advanced' }
           ]
         }
@@ -371,6 +374,7 @@ export default withMermaid({
           items: [
             { text: '绘图接口', link: '/api/image' },
             { text: '游戏接口', link: '/api/game' },
+            { text: '测试面板接口', link: '/api/test-panel' },
             { text: '日志接口', link: '/api/logs' },
             { text: '代理接口', link: '/api/proxy-api' }
           ]
