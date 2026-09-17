@@ -167,7 +167,7 @@ eventSource.onerror = (error) => {
 | [MCP 接口](./mcp) | MCP 服务器 | `GET /mcp/servers`, `POST /mcp/servers/:name/connect` |
 | [记忆接口](./memories) | 用户记忆 | `GET /memories/users`, `POST /memories/user/:userId` |
 | [知识库接口](./knowledge) | 知识库文档 | `GET /knowledge`, `GET /knowledge/search` |
-| [知识图谱接口](./graph) | 实体与关系 | `GET /graph/entities`, `POST /graph/relations` |
+| [知识图谱接口](./graph) | 实体与关系 | `GET /graph/entities`, `POST /graph/relationships` |
 | [绘图接口](./image) | 绘图预设 | `GET /image/presets`, `PUT /image/config` |
 | [游戏接口](./game) | Galgame | `GET /game/presets`, `POST /game/presets` |
 | [日志接口](./logs) | 日志查看 | `GET /logs`, `GET /logs/recent` |

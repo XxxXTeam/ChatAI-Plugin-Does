@@ -242,42 +242,25 @@ security:
 
 ## 上下文访问 {#context-access}
 
-内置工具通过 `ToolContext` 访问运行时上下文，获取 Bot、事件、权限等信息。
+工具通过执行函数的第二个参数 `context` 访问运行时上下文。平台差异、目标 ID 类型、发送结果校验和不支持能力的兜底全部由标准接口处理。
 
 ::: tip ToolContext API
-`ToolContext` 是工具执行时的核心上下文对象，定义于 `src/mcp/BuiltinMcpServer.js`
+`context` 是请求级对象；模型创建的工具不得导入运行时单例或直接读取协议端对象。
 :::
 
 ```javascript{1,4,7-9,12,15-16}
-import { getBuiltinToolContext } from '../../mcp/BuiltinMcpServer.js'
-
-handler: async (args) => {
-  const ctx = getBuiltinToolContext()
-  
-  // 获取 Bot 实例（自动处理多 Bot 环境）
-  const bot = ctx.getBot()
-  // 支持指定 Bot ID
-  const specificBot = ctx.getBot(botId)
-  
-  // 获取消息事件
-  const event = ctx.getEvent()
+handler: async (args, context) => {
+  const api = context.getApi()
+  const message = context.message
+  const event = context.getEvent()
   const userId = event?.user_id
   const groupId = event?.group_id
   
   // 检查是否为主人
-  const isMaster = ctx.isMaster
+  const isMaster = context.isMaster()
   
-  // 获取适配器信息
-  const adapter = ctx.getAdapter()
-  // 返回: { adapter: 'icqq'|'napcat'|'onebot', isNT: boolean, canAiVoice: boolean }
-  
-  // 快捷判断方法
-  ctx.isIcqq()    // 是否 ICQQ 适配器
-  ctx.isNapCat()  // 是否 NapCat 适配器
-  ctx.isNT()      // 是否支持 NT 特性
-  
-  // 获取 Bot 在群内的权限
-  const permission = await ctx.getBotPermission(groupId)
+  // 通过标准接口发送/查询；不在工具中判断 QQBot、ICQQ 或 OneBot
+  const permission = await api.getBotPermission(groupId)
   // 返回: { role: 'owner'|'admin'|'member', isAdmin: boolean, isOwner: boolean, inGroup: boolean }
 }
 ```

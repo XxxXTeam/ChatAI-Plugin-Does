@@ -85,9 +85,6 @@ export default {
 ### 访问上下文
 
 ```javascript
-// data/tools/user-info.js
-import { getBuiltinToolContext } from '../../src/mcp/BuiltinMcpServer.js'
-
 export default {
   name: 'get_current_user',
   description: '获取当前对话用户信息',
@@ -97,9 +94,8 @@ export default {
     properties: {}
   },
   
-  handler: async (args) => {
-    const ctx = getBuiltinToolContext()
-    const event = ctx.getEvent()
+  handler: async (args, context) => {
+    const event = context.getEvent()
     
     if (!event) {
       return { error: '无法获取用户信息' }
@@ -109,7 +105,7 @@ export default {
       userId: event.user_id,
       groupId: event.group_id,
       nickname: event.sender?.nickname,
-      isMaster: ctx.isMaster
+      isMaster: context.isMaster()
     }
   }
 }
@@ -118,9 +114,6 @@ export default {
 ### 使用 Bot 实例
 
 ```javascript
-// data/tools/send-msg.js
-import { getBuiltinToolContext } from '../../src/mcp/BuiltinMcpServer.js'
-
 export default {
   name: 'send_to_group',
   description: '发送消息到指定群',
@@ -134,11 +127,9 @@ export default {
     required: ['group_id', 'message']
   },
   
-  handler: async (args) => {
-    const ctx = getBuiltinToolContext()
-    const bot = ctx.getBot()
-    
-    await bot.pickGroup(args.group_id).sendMsg(args.message)
+  handler: async (args, context) => {
+    const api = context.getApi()
+    await api.sendGroup(args.group_id, args.message)
     return { success: true, text: '消息已发送' }
   }
 }

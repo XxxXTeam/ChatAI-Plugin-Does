@@ -207,9 +207,6 @@ builtinTools:
 ### 示例 2：发送消息（需要上下文）{#example-message}
 
 ```javascript{2,5-6,9-14,17-21}
-// src/mcp/tools/message.js
-import { getBuiltinToolContext } from '../BuiltinMcpServer.js'
-
 {
   name: 'send_private_message',
   description: '发送私聊消息给指定用户',
@@ -223,11 +220,8 @@ import { getBuiltinToolContext } from '../BuiltinMcpServer.js'
     required: ['user_id', 'message']
   },
   
-  handler: async (args) => {
-    const ctx = getBuiltinToolContext()
-    const bot = ctx.getBot()
-    
-    await bot.pickUser(args.user_id).sendMsg(args.message)
+  handler: async (args, context) => {
+    await context.getApi().sendPrivate(args.user_id, args.message)
     return { success: true, text: '消息已发送' }
   }
 }

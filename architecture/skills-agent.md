@@ -145,15 +145,30 @@ if (tool.adminOnly && !context.isAdmin) {
 # SKILL.md frontmatter 示例
 ---
 name: coding-assist
-description: 编码辅助技能
-allowed-tools:        # 该技能激活时仅暴露以下工具
-  - read_file
-  - write_file
-  - execute_command
+description: Use when the user asks to inspect, edit, or verify source code.
+allowed-tools: read_file write_file execute_command
 disallowed-tools:     # 从可用工具中排除以下工具
   - kick_member
 ---
 ```
+
+### Agent Skills 规范与渐进披露
+
+标准包目录以 `SKILL.md` 为入口，`name` 必须与父目录一致，长度 1-64，只能使用小写字母、
+数字和单连字符（不能首尾或连续连字符）；`description` 长度 1-1024，并负责描述真实触发场景。
+可选字段包括 `license`、`compatibility`、字符串键值映射 `metadata`，以及实验性的
+`allowed-tools`（空格分隔字符串）。包可包含 `scripts/`、`references/`、`assets/`。
+
+系统采用三层渐进披露：提示词先展示全部技能的 `name + description`；模型通过
+`get_skill_info`/`load_skill` 读取正文；正文引用附属文件时再调用 `read_skill_file`。
+工具白名单只应用于当前消息确定匹配的技能或主人显式持久激活的技能，发现列表本身不会收窄工具。
+
+旧项目中的中文名称、目录名不一致、数组形式 `allowed-tools` 仍会兼容加载，并通过
+`standardCompliant: false` 与 `compatibilityWarnings` 显式告警。项目扩展键
+`allowedTools`/`allowed_tools` 继续支持数组；只有标准键 `allowed-tools` 按空格 tokenizer 解析。
+
+普通会话的 `load_skill` 只把完整正文作为当前工具结果返回，不写全局状态，避免跨用户/群污染。
+只有主人显式传 `persist_global: true` 才会持久激活；`unload_skill` 同样只允许主人执行。
 
 ### 约束收集与应用
 

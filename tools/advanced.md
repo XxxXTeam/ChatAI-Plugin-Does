@@ -111,36 +111,23 @@ inputSchema: {
 ### 完整上下文 API
 
 ```javascript
-import { getBuiltinToolContext } from '../../src/mcp/BuiltinMcpServer.js'
-
 export default {
   name: 'context_demo',
   description: '上下文访问示例',
   
   inputSchema: { type: 'object', properties: {} },
   
-  handler: async (args) => {
-    const ctx = getBuiltinToolContext()
+  handler: async (args, context) => {
+    const api = context.getApi()
     
     // 事件信息
-    const event = ctx.getEvent()
+    const event = context.getEvent()
     const userId = event?.user_id
     const groupId = event?.group_id
     const messageId = event?.message_id
     
     // 权限信息
-    const isMaster = ctx.isMaster
-    const isAdmin = ctx.isAdmin
-    const isGroupOwner = ctx.isGroupOwner
-    
-    // Bot 实例
-    const bot = ctx.getBot()
-    
-    // 当前配置
-    const config = ctx.getConfig()
-    
-    // 预设信息
-    const preset = ctx.getPreset()
+    const isMaster = context.isMaster()
     
     return {
       userId,
@@ -155,29 +142,28 @@ export default {
 ### 发送消息
 
 ```javascript
-handler: async (args) => {
-  const ctx = getBuiltinToolContext()
-  const bot = ctx.getBot()
-  const event = ctx.getEvent()
+handler: async (args, context) => {
+  const api = context.getApi()
+  const event = context.getEvent()
   
   // 回复当前消息
-  await event.reply('处理完成')
+  await api.reply('处理完成')
   
   // 发送到指定群
-  await bot.pickGroup('123456').sendMsg('群消息')
+  await api.sendGroup('123456', '群消息')
   
   // 发送私聊
-  await bot.pickUser('789').sendMsg('私聊消息')
+  await api.sendPrivate('789', '私聊消息')
   
   // 发送图片
-  await event.reply(segment.image('/path/to/image.png'))
+  await api.reply(context.message.image('/path/to/image.png'))
   
   // 发送合并转发
   const msgs = [
     { message: '消息1' },
     { message: '消息2' }
   ]
-  await event.reply(await bot.makeForwardMsg(msgs))
+  await api.sendForward({ nodes: msgs })
   
   return { success: true }
 }
@@ -198,16 +184,16 @@ export default {
   inputSchema: { type: 'object', properties: {} },
   
   handler: async (args) => {
-    const ctx = getBuiltinToolContext()
+    const api = context.getApi()
     
     // 发送进度通知
-    await ctx.getEvent()?.reply('任务开始，请稍候...')
+    await api.reply('任务开始，请稍候...')
     
     // 执行耗时操作
     const result = await heavyComputation()
     
     // 完成通知
-    await ctx.getEvent()?.reply('任务完成！')
+    await api.reply('任务完成！')
     
     return { result }
   }
@@ -385,9 +371,8 @@ export default {
     }
   },
   
-  handler: async (args) => {
-    const ctx = getBuiltinToolContext()
-    const agent = await createSkillsAgent({ event: ctx.getEvent() })
+  handler: async (args, context) => {
+    const agent = await createSkillsAgent({ event: context.getEvent(), bot: context.getApi().bot })
     
     // 并行调用多个工具
     const [weather, time] = await Promise.all([
