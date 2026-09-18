@@ -50,6 +50,15 @@ bym:
       - keywords            # Specific topics
 ```
 
+```mermaid
+flowchart LR
+    T["Trigger fires (timeOfDay / groupActivity / keywords)"] --> T1{Reached maxPerDay?}
+    T1 -->|"No"| T2{minInterval elapsed?}
+    T2 -->|"Yes"| SEND["Send proactive message"]
+    T1 -->|"Yes"| SKIP["Skip (daily limit)"]
+    T2 -->|"No"| WAIT["Wait until interval passed"]
+```
+
 ## Response Style {#style}
 
 ```yaml
@@ -76,6 +85,13 @@ groups:
   987654321:
     bym:
       enabled: false
+```
+
+```mermaid
+flowchart TD
+    G{Group ID}
+    G -->|"123456789"| G1["enabled: true<br>persona: catgirl<br>proactiveChat: true"]
+    G -->|"987654321"| G2["enabled: false<br>(BYM off in this group)"]
 ```
 
 ## Safety Controls {#safety}

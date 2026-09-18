@@ -113,6 +113,13 @@ Most OpenAI-compatible APIs can be connected using the `openai` type — just ch
 
 ## Disabled Channels {#disabled-channels}
 
+```mermaid
+flowchart TD
+    C["Channel with enabled: false"] -->|"filtered"| M["Excluded from available model lists"]
+    M --> A["Backend aggregation endpoint<br>(group admin panel)"]
+    M --> B["Frontend aggregation points:<br>global config / group editor / users page / image generation page"]
+```
+
 - Channels with `enabled: false` are excluded from available model lists: the backend aggregation endpoint (group admin panel) and all frontend aggregation points (global config, group editor, users page, image generation page) filter disabled channels, so their models no longer appear.
 - Model mapping (`channelManager.getActualModel`) is consistent between the ChatService main path and LlmDelegate bypass calls.
 
@@ -140,6 +147,16 @@ llm:
 ::: tip LlmDelegate bypass retry
 Bypass LLM calls (memory, knowledge graph, summaries) go through `LlmDelegate.callWithChannelDelegate`: channel switching with exponential backoff (initial `retryDelay`, capped at 10 seconds), channel error reporting, and per-channel `advanced.streaming` compliance. Setting `enableChannelSwitch: false` disables channel switching for bypass calls.
 :::
+
+```mermaid
+flowchart TD
+    A["Request via current channel"] --> B{"Success?"}
+    B -->|"Yes"| C["Return result"]
+    B -->|"No"| D["try next channel<br>(channelStrategy.failover)"]
+    D --> E{"Try another channel?"}
+    E -->|"Yes"| A
+    E -->|"Max retries reached"| F["Report failure"]
+```
 
 ## Load Balancing {#load-balancing}
 

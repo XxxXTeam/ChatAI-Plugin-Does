@@ -35,6 +35,18 @@ proxy:
 
 ## 运行时行为（ProxyService）
 
+```mermaid
+flowchart TD
+    A[getProfileForScope 查询某作用域代理] --> B{proxy.enabled}
+    B -- 为假 --> C[返回空 不使用代理]
+    B -- 为真 --> D{scopes 对应作用域的 enabled 与 profileId}
+    D -- 任一缺失 --> C
+    D -- 均齐备 --> E[按 profile 构建代理 URL]
+    E --> F{profile 的 type}
+    F -- http / https --> G[使用 http-proxy-agent 或 https-proxy-agent]
+    F -- socks --> H[使用 socks-proxy-agent]
+```
+
 - `getProfileForScope(scope)`：`proxy.enabled` 为假时直接返回空；再看 `scopes[scope].enabled` 与 `profileId`，任一缺失即视为不使用代理。
 - 支持 HTTP / HTTPS / SOCKS 代理类型（`http-proxy-agent` / `https-proxy-agent` / `socks-proxy-agent`）。
 - 作用域取值固定为 `'browser'` / `'api'` / `'channel'` 三类。

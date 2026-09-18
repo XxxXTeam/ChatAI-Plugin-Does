@@ -8,3 +8,4 @@ dist
 .env.*
 workers/ai-chat/.dev.vars
 workers/ai-chat/data/
+.verify-*.mjs

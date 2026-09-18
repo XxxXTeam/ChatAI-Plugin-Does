@@ -47,6 +47,14 @@ Edit `data/mcp-servers.json`:
 
 ## Transport Types {#transports}
 
+```mermaid
+flowchart TD
+    ST{Server configuration}
+    ST -->|"command + args<br>(default)"| A["stdio<br>Local process"]
+    ST -->|"transport: sse"| B["SSE<br>Remote HTTP + headers"]
+    ST -->|"transport: http"| C["HTTP<br>Remote URL"]
+```
+
 ### stdio (Default) {#stdio}
 
 ```json

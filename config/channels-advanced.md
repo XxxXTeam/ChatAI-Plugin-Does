@@ -22,6 +22,15 @@ channels:
 
 `endpoints` 优先于 `chatPath` / `modelsPath`；三者均未配置时使用适配器默认端点。
 
+```mermaid
+flowchart TD
+    A[构建该渠道的某类端点地址] --> B{endpoints 对应键是否配置}
+    B -- 已配置 --> C[使用 endpoints 中的值]
+    B -- 未配置 --> D{chatPath 或 modelsPath 是否配置}
+    D -- 已配置 --> E[兼容旧格式 使用 chatPath 或 modelsPath]
+    D -- 未配置 --> F[使用适配器默认端点]
+```
+
 ## 认证方式 auth
 
 ```yaml
@@ -61,6 +70,16 @@ imageConfig:
 ```
 
 关于 `requiresBase64`（实例渠道中出现，默认注释内无显式默认值）：当 `transferMode` 为 `'auto'` 时优先采用此声明；不声明则按模型名推断（仅 Gemini 系列判为需要），供 glm-4v / qwen-vl / 网关重命名后的视觉模型显式指定。
+
+```mermaid
+flowchart TD
+    A[图片请求该渠道] --> B{transferMode 取值}
+    B -- base64 --> C[直接以 base64 传图]
+    B -- url --> D[使用图片 URL 传图]
+    B -- auto --> E{是否声明 requiresBase64}
+    E -- 已声明 --> F[按声明决定是否 base64]
+    E -- 未声明 --> G[按模型名推断 仅 Gemini 系列判为需要]
+```
 
 ## 端点能力声明 experimental
 

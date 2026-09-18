@@ -58,6 +58,18 @@ The system divides memories into six categories:
 
 The memory summary endpoint combines "merge & deduplicate + LLM summary + (optional) low-quality cleanup" in one call:
 
+```mermaid
+flowchart TD
+    E["POST /api/memories/user/:userId/summarize"] --> M["Merge & deduplicate"]
+    M --> L["LLM summary"]
+    L --> P["Parse line by line"]
+    P -->|"[category] line (whitelist profile / preference / event / relation / topic / custom)"| S["Store memory directly"]
+    P -->|"Free-text line"| F["Triple filter<br>(reasoning words / density / meta-narrative patterns)"]
+    F -->|"Passed"| S
+    F -->|"Rejected"| DROP["Never enters memories"]
+    L -->|"cleanup requested"| C["Low-quality cleanup<br>(low confidence / expired / too old / too short)"]
+```
+
 ```http
 POST /api/memories/user/:userId/summarize
 ```
@@ -176,6 +188,13 @@ memory:
     useLLM: true              # Use AI to generate the summary
 ```
 
+```mermaid
+flowchart LR
+    T["Daily schedule<br>(defaultPushHour: 22)"] --> C["Collect recent messages<br>(at most maxMessages)"]
+    C -->|"useLLM"| S["Generate group chat summary"]
+    S --> P["Push summary to the group"]
+```
+
 ### Example Output
 
 ```
@@ -210,6 +229,13 @@ Memory extraction does not need the strongest model; `gpt-4o-mini` or `claude-3-
 
 ### Memory Scope
 
+```mermaid
+flowchart LR
+    M["Memories"] --> P["Personal memories:<br>only the user's own conversations"]
+    M --> G["Group memories:<br>only used in that group"]
+    M --> D["Data isolation:<br>groups / users fully isolated"]
+```
+
 - **Personal memories**: only the user's own conversations are remembered
 - **Group memories**: group chat information is only used in that group
 - **Data isolation**: memories of different groups/users are fully isolated
@@ -222,6 +248,13 @@ Users can at any time:
 - Clear all memories
 
 ### Sensitive Information
+
+```mermaid
+flowchart LR
+    EX["Extraction pipeline"] -->|"never extracts or stores"| S1["Passwords, API keys"]
+    EX --> S2["Bank card / ID card numbers"]
+    EX --> S3["Private chat content"]
+```
 
 The system does not extract or store:
 - Passwords, API keys, etc.

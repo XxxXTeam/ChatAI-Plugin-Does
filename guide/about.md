@@ -44,6 +44,16 @@ git clone https://github.com/XxxXTeam/chatai-plugin.git ./plugins/chatgpt-plugin
 
 ### 初始化流程
 
+```mermaid
+flowchart TB
+    A["插件加载"] --> B["1. 加载配置文件<br/>config/config.yaml"]
+    B --> C["2. 初始化数据库<br/>data/chatai.db (SQLite)"]
+    C --> D["3. 初始化 MCP 系统<br/>内置工具 + 自定义工具 + 外部服务器"]
+    D --> E["4. 启动 Web 服务<br/>管理面板 + API"]
+    E --> F["5. 注册消息监听"]
+    F --> G["就绪"]
+```
+
 ```
 插件加载
     │
@@ -198,6 +208,15 @@ channels:
 插件内置完善的错误处理和重试机制。
 
 ### 重试策略
+
+```mermaid
+flowchart TD
+    A["请求失败"] --> B{"检查错误类型"}
+    B -->|"429 限流"| C["指数退避重试<br/>等待 2^n 秒后重试"]
+    B -->|"500/502/503 服务器错误"| D["立即重试<br/>最多重试 maxRetries 次"]
+    B -->|"401/403 认证失败"| E["不重试，直接报错<br/>提示检查 API Key"]
+    B -->|"网络错误"| F["切换渠道重试<br/>尝试其他可用渠道"]
+```
 
 ```
 请求失败

@@ -35,6 +35,27 @@ class ChatService {
 }
 ```
 
+## Error Handling Flow {#error-flow}
+
+```mermaid
+flowchart TD
+    A["sendMessage options"] --> B["_sendMessageImpl<br/>multi-level fallback loop"]
+    B --> C{"error classified as<br/>auth / quota / timeout / network / server"}
+    C -->|no| D["return assembled result<br/>usage / debugInfo / toolCallLogs"]
+    C -->|yes| E["first: Key rotation<br/>getNextAvailableKey"]
+    E --> F{"exhausted, switchable?"}
+    F -->|channel switch| G["getAvailableChannels with cooldowns<br/>rebuild client"]
+    F -->|fallback model| H["backup model (limit 1 retry)<br/>after mainModelExhausted"]
+    B --> I{"empty response?"}
+    I -->|yes| J["emptyRetries loop"]
+    J -->|exhausted| E
+    D --> K["outer catch in sendMessage"]
+    K --> L{"features.autoCleanOnError.enabled?"}
+    L -->|yes| M["deleteConversation + cleanContext<br/>reply to user if notifyUser"]
+    L -->|no| N["throw error"]
+    M --> N
+```
+
 ## Message Processing {#processing}
 
 ### Input Processing

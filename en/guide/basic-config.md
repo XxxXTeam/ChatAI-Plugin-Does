@@ -16,6 +16,13 @@ Visual interface, changes apply immediately.
 
 Edit `config/config.yaml` directly.
 
+```mermaid
+flowchart LR
+    S{Configuration method}
+    S -->|"Web Panel"| W["Get link via #ai管理面板<br>changes apply immediately"]
+    S -->|"Config file"| F["Edit config/config.yaml<br>then #ai重载配置"]
+```
+
 ## Essential Settings {#essential}
 
 ### 1. Add API Channel {#add-channel}

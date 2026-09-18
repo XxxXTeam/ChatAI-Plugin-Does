@@ -94,6 +94,13 @@ AI responds only when triggered (unless configured otherwise).
 
 ### No Response {#no-response}
 
+```mermaid
+flowchart TD
+    A["No response from the bot"] --> B["Check trigger method"]
+    B --> C["Verify channel is configured"]
+    C --> D["Enable debug: #ai调试开启"]
+```
+
 1. Check trigger method
 2. Verify channel is configured
 3. Enable debug: `#ai调试开启`
@@ -101,6 +108,15 @@ AI responds only when triggered (unless configured otherwise).
 ### Error Messages {#errors}
 
 Common errors:
+
+```mermaid
+flowchart TD
+    E{Error code}
+    E -->|"401"| A["Check API key"]
+    E -->|"429"| B["Rate limited, wait or switch channel"]
+    E -->|"Timeout"| C["Check network/proxy"]
+```
+
 - **401**: Check API key
 - **429**: Rate limited, wait or switch channel
 - **Timeout**: Check network/proxy

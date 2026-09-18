@@ -29,6 +29,14 @@ web:
   accentColor: blue     # Primary color
 ```
 
+```mermaid
+flowchart LR
+    W["web.theme"]
+    W -->|"auto"| A["Follow system preference"]
+    W -->|"light"| L["Light theme"]
+    W -->|"dark"| D["Dark theme"]
+```
+
 ## Access Control {#access}
 
 ```yaml
@@ -77,6 +85,12 @@ Get login link:
 #ai管理面板 永久     # Permanent link
 ```
 
+```mermaid
+flowchart LR
+    C("Command: #ai管理面板") -->|"Without argument"| T["Temporary login link"]
+    C -->|"With 永久"| P["Permanent login link"]
+```
+
 ## External Access {#external}
 
 To allow external access:
@@ -93,6 +107,14 @@ When exposing externally:
 3. Configure IP whitelist
 4. Use firewall rules
 :::
+
+```mermaid
+flowchart TD
+    E["External access<br>(host: 0.0.0.0)"] --> S1["Enable SSL"]
+    E --> S2["Use strong session secret"]
+    E --> S3["Configure IP whitelist"]
+    E --> S4["Use firewall rules"]
+```
 
 ## Next Steps {#next}
 

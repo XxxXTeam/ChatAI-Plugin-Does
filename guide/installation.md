@@ -21,6 +21,22 @@
 
 ## 环境准备 {#env}
 
+环境准备 → 安装 → 构建 → 启动验证的整体流程如下（命令均来自本页下文）：
+
+```mermaid
+flowchart TB
+    A["环境准备：Node.js、pnpm、编译工具"] --> B{"选择安装方式"}
+    B --> |"方式一：Git 克隆"| C["git clone https://github.com/XxxXTeam/chatai-plugin.git ./plugins/chatgpt-plugin"]
+    B --> |"方式二：手动下载"| D["下载 Releases 并解压到 plugins/chatgpt-plugin"]
+    C --> E["安装依赖：pnpm install（Yunzai 根目录）"]
+    D --> E
+    E --> F["构建原生模块：pnpm approve-builds"]
+    F --> G["启动验证：pnpm start"]
+    G --> H{"TRSS 环境？"}
+    H --> |"是"| I["自动共享 TRSS 端口<br/>地址变为 http://your-host:TRSS端口/chatai"]
+    H --> |"否"| J["Web 面板: http://xxx.xxx.xxx.xxx:3000"]
+```
+
 ### Node.js
 
 ```bash

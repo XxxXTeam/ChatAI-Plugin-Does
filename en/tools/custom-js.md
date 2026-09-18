@@ -12,6 +12,13 @@ Custom JS tools are stored in `data/tools/` directory with **hot reload** suppor
 3. Tool is automatically available
 :::
 
+```mermaid
+flowchart LR
+    A["Create .js file in data/tools/"] --> B["Export tool definition<br>(export const tools = [...])"]
+    B --> C["Tool automatically available"]
+    C -->|"File changed"| A
+```
+
 ## Directory Structure {#structure}
 
 ```
@@ -67,6 +74,12 @@ handler: async (args, context) => {
   // Use context info
   return { userId, groupId }
 }
+```
+
+```mermaid
+flowchart LR
+    H["handler: async (args, context)"] -->|"args"| A["Tool parameters from inputSchema"]
+    H -->|"context"| C["Runtime context:<br>userId / groupId / event"]
 ```
 
 ## Examples {#examples}
@@ -125,6 +138,13 @@ export const tools = [{
     }
   }
 }]
+```
+
+```mermaid
+flowchart LR
+    URL["inputSchema url"] --> F["fetch(url)"]
+    F --> R["response.text()"]
+    R --> O["Return status + first 1000 characters"]
 ```
 
 ## Hot Reload {#hot-reload}

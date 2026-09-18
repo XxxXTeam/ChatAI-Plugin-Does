@@ -54,6 +54,18 @@ web:
 
 ## 登录令牌
 
+```mermaid
+sequenceDiagram
+    participant U as 用户
+    participant B as 机器人
+    participant W as Web 服务
+    U->>B: 发送 #ai管理面板
+    B-->>U: 返回带临时 token 的登录链接
+    U->>W: 点击链接
+    W-->>W: 校验 token 并签发 JWT 有效期 30 天
+    W-->>U: 设置 Cookie 后续访问免登录
+```
+
 - 登录链接由 `#ai管理面板` 命令生成（`apps/Management.js`），支持临时登录链接与永久链接（`web.permanentAuthToken`，运行期键）。
 - 登录后 Cookie 有效期为 30 天（`src/services/webServer.js` 中签发 token 使用 `expiresIn: '30d'`、JWT 算法 `HS256`），旧文档书写的「24 小时」与代码不符。
 - `web.jwtSecret` 未配置时自动生成 UUID 并写回配置。
@@ -266,6 +278,17 @@ pnpm export      # 构建并输出到 ../resources/web（npm run export 脚本�
 ## API 调用
 
 前端通过 REST API 与后端通信，鉴权路由挂载于 `/api/...`（`src/services/webServer.js` 中 `router.use('/api/config', auth, configRoutes)` 等）。
+
+```mermaid
+sequenceDiagram
+    participant F as 前端面板
+    participant W as Web 服务
+    F->>W: GET 请求读取配置
+    W-->>F: 返回配置 JSON
+    F->>W: POST 携带 Cookie 提交配置变更
+    W->>W: 深度合并并保存到 config.yaml
+    W-->>F: 返回保存结果
+```
 
 ```javascript
 // 更新配置：POST /api/config，对象深度合并后一次性保存

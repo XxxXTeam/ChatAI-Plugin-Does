@@ -6,6 +6,17 @@ Tool Groups group built-in tools by purpose so the **tool dispatcher** can selec
 
 `ToolGroupManager.init()` loads tool groups in the following order:
 
+```mermaid
+flowchart TD
+    INIT["ToolGroupManager.init()"] --> S1{skills.groups<br>in data/skills.yaml}
+    S1 -->|"Exists with enabled groups"| L1["Load skills groups<br>(source: skills-config)"]
+    S1 -->|"No usable groups"| S2{built-in toolCategories}
+    S2 --> L2["Load built-in categories<br>(source: builtin)"]
+    L1 --> APP["Append external MCP groups"]
+    L2 --> APP
+    APP --> DONE["Groups ready for dispatch<br>(source: mcp)"]
+```
+
 1. **`skills.groups` in `data/skills.yaml`** (priority): used when it exists and has enabled groups; source marked `skills-config`.
 2. **Built-in tool categories `toolCategories`** (fallback): used when skills.yaml has no usable groups; source marked `builtin`.
 3. **External MCP server tool groups** (appended): tools of connected external MCP servers form groups automatically, numbered after the built-in groups; source marked `mcp`.
@@ -90,6 +101,17 @@ The following are the default tool groups in `data/skills.yaml` (28 groups, inde
 :::
 
 ## Tool Groups and Dispatch
+
+```mermaid
+flowchart TD
+    A["buildDispatchPrompt<br>(lists enabled groups as [index] display name: description)"] --> B["Dispatch model selects group indexes"]
+    B --> C["getToolsByGroupIndexes()"]
+    C --> D["Aggregate tools of selected groups"]
+    D --> E["Permission filtering"]
+    D --> F["Security checks from skills.yaml"]
+    E --> G["Tools available for the conversation"]
+    F --> G
+```
 
 The tool dispatcher (`buildDispatchPrompt`) lists enabled tool groups in the form `[index] display name: description` for the dispatch model to choose from. After the model returns the selected group indexes, `getToolsByGroupIndexes()` aggregates the tools of those groups (applying permission filtering and the security checks from `skills.yaml`) for the current conversation.
 

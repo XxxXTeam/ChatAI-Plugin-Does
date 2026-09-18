@@ -9,6 +9,20 @@ ChatAI Plugin 提供了丰富的命令来控制 AI 对话、管理群组设置�
 默认命令前缀为 `#ai`，可在配置中修改。下文中 `{prefix}` 代表你配置的命令前缀。
 :::
 
+命令到达后按注册地分工处理（各文件均为本页表格中的注册来源）：
+
+```mermaid
+flowchart TB
+    M["收到消息"] --> R{"命令规则匹配"}
+    R --> A["apps/Commands.js<br/>对话、群聊总结、群管理面板等"]
+    R --> B["apps/Management.js<br/>人格设定、主人命令、群渠道与限制等"]
+    R --> C["apps/ImageGen.js<br/>文生图、图生图、绘图帮助等"]
+    R --> D["apps/Galgame.js<br/>{prefix}游戏开始、游戏状态等"]
+    R --> E["apps/Update.js<br/>#ai版本、#ai更新等"]
+    R --> F["apps/EmojiThief.js<br/>偷图、存图、save 等"]
+    R --> G["MessageInspector<br/>#取、#统计、#debug 等"]
+```
+
 ## 💬 对话命令
 
 基础的对话管理命令，所有用户可用。注册于 `apps/Commands.js`。
@@ -167,6 +181,14 @@ AI 驱动的 Galgame 文字冒险游戏，注册于 `apps/Galgame.js`（`{prefix
 ## 🤖 触发方式
 
 除了命令触发外，还支持以下触发方式与 AI 对话：
+
+```mermaid
+flowchart LR
+    A["@触发<br/>直接 @机器人 并发送消息"] --> X["AI 对话"]
+    B["前缀触发<br/>#chat 你好<br/>（trigger.prefixes）"] --> X
+    C["关键词触发<br/>消息包含配置的关键词"] --> X
+    D["随机触发<br/>群聊按概率随机回复（伪人模式）"] --> X
+```
 
 ### @触发
 直接 @机器人 并发送消息即可触发对话。

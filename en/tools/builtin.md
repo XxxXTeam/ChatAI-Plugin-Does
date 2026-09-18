@@ -108,6 +108,13 @@ The `knowledgeGraph` category was added in 2026-09 and is enabled by default for
 1. Add tool definition in category file → 2. Register new category (optional) → 3. Configure and enable
 :::
 
+```mermaid
+flowchart LR
+    A["Step 1: Add tool definition in category file<br>(e.g. src/mcp/tools/basic.js)"] --> B["Step 2: Register tool module in src/mcp/tools/index.js<br>(only for new categories)"]
+    B --> C["Step 3: Enable category via config.yaml builtinTools.enabledCategories"]
+    C --> D["Hot reload / Web panel tool management"]
+```
+
 ### Step 1: Add Tool in Category File {#step-1}
 
 ```javascript{2-5,7-16,18-22}
@@ -186,6 +193,13 @@ Can also enable/disable tool categories in Web Admin Panel → Tool Management.
 ::: tip Complete Examples
 Two typical built-in tool implementations showing common patterns.
 :::
+
+```mermaid
+flowchart TD
+    TOOL["Tool definition"] --> DEF["name / description / inputSchema / handler"]
+    DEF -->|"No context"| T1["Example 1: get_current_time<br>self-contained handler"]
+    DEF -->|"With context"| T2["Example 2: send_private_message<br>getBuiltinToolContext() + bot.pickUser().sendMsg()"]
+```
 
 ### Example 1: Get Time (No Context) {#example-time}
 

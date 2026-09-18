@@ -16,6 +16,17 @@
 
 ## 安装步骤 {#installation}
 
+安装流程概览（命令以本页各步骤为准）：
+
+```mermaid
+flowchart TB
+    A["环境要求：Node.js ≥ 18.0、pnpm ≥ 8.0、Yunzai-Bot V3"] --> B["第一步：克隆插件<br/>git clone https://github.com/XxxXTeam/chatai-plugin.git ./plugins/chatai-plugin"]
+    B --> C["第二步：安装依赖<br/>pnpm install（必须在 Yunzai 根目录执行）"]
+    C --> D["第三步：构建原生模块<br/>pnpm rebuild better-sqlite3"]
+    D --> E["第四步：启动服务<br/>pnpm start 或 node app"]
+    E --> F["发送 #ai管理面板 获取登录链接"]
+```
+
 ### 第一步：克隆插件 {#step-1}
 
 在 **Yunzai-Bot 根目录**执行：
@@ -125,6 +136,15 @@ node app
 ::: info 引导设置
 首次进入面板会自动弹出初始化引导向导，按步骤完成配置即可。
 :::
+
+```mermaid
+flowchart LR
+    S1["Step 1 选择渠道"] --> S2["Step 2 填写 API Key"]
+    S2 --> S3["Step 3 测试连接"]
+    S3 --> S4["Step 4 选择模型"]
+    S4 --> S5["Step 5 选择预设"]
+    S5 --> S6["Step 6 配置触发"]
+```
 
 <div class="steps-container">
 

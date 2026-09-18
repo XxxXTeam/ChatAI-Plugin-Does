@@ -103,6 +103,18 @@ trigger:
 
 黑白名单按私聊/群聊分组配置（见上方 [基础配置](#基础配置) 示例），均为 QQ 号或群号数组，空数组表示不限。
 
+```mermaid
+flowchart TD
+    A[收到一条新消息] --> B{判断消息来源}
+    B -- 私聊 --> C[检查 trigger.private 的 blacklistUsers 与 whitelistUsers]
+    B -- 群聊 --> D[检查 trigger.group 的 blacklistUsers 与 whitelistUsers]
+    D --> E[检查 trigger.group 的 blacklistGroups 与 whitelistGroups]
+    C --> F{名单判定是否通过}
+    E --> F
+    F -- 通过 --> G[交给后续触发判断]
+    F -- 命中黑名单 --> H[忽略消息]
+```
+
 ## 前缀人格映射 prefixPersonas
 
 `config.yaml` 实例中出现过 `trigger.prefixPersonas` 键，**不在默认配置中**；`apps/chat.js` 在群组自定义前缀合并时读取 `triggerCfg.prefixPersonas`，其元素结构未在默认配置注释中定义，此处不展开示例。
@@ -110,6 +122,16 @@ trigger:
 ## 群组独立触发配置
 
 群组级配置会覆盖全局触发行为（`apps/chat.js`）：
+
+```mermaid
+flowchart TD
+    A[群消息请求触发判断] --> B[读取该群的 groupConfig]
+    B --> C{groupConfig.triggerMode}
+    C -- at / prefix / all --> D[覆盖 group.at / group.prefix / group.keyword 并置 group.random 为 false]
+    C -- default --> E[沿用全局 trigger.group 配置]
+    F{groupConfig.customPrefix 是否存在} -- 是 --> G[插入前缀列表首位]
+    H{groupConfig.prefixPersonas 是否存在} -- 是 --> I[优先于全局 trigger.prefixPersonas]
+```
 
 - `groupConfig.triggerMode` 为 `'at'` / `'prefix'` / `'all'` 时覆盖 `group.at` / `group.prefix` / `group.keyword`（并置 `group.random = false`）；`'default'` 表示沿用全局。
 - `groupConfig.customPrefix` 会插入前缀列表首位。

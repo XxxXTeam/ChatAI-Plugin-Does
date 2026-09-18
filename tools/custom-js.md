@@ -2,6 +2,16 @@
 
 自定义 JS 工具让用户无需修改源码即可扩展功能。
 
+```mermaid
+flowchart TD
+    A["在 data/tools/ 目录创建 .js 文件<br/>export default { name, description, inputSchema, handler }"] --> B["插件监听加载"]
+    B --> C{"AI 需要工具？"}
+    C -->|"是"| D["调用 handler，注入 args 与 context"]
+    D --> E["返回 { text / error } 结果给 AI"]
+    C -->|"否"| B
+    F["文件保存后自动热重载<br/>或手动 #重载工具"] --> B
+```
+
 ## 基础用法
 
 ### 创建工具文件
@@ -83,6 +93,15 @@ export default {
 ```
 
 ### 访问上下文
+
+`handler` 的第二个参数 `context` 提供的能力（均来自本页示例代码）：
+
+```mermaid
+flowchart LR
+    H["handler(args, context)"] --> A["context.getEvent()<br/>获取当前事件<br/>event.user_id / event.group_id / event.sender?.nickname"]
+    H --> B["context.getApi()<br/>调用 Bot API（api.sendGroup 等）"]
+    H --> C["context.isMaster()<br/>判断调用者是否为主人"]
+```
 
 ```javascript
 export default {

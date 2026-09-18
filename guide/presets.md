@@ -26,7 +26,16 @@
 
 ## 预设概念
 
-**预设**包含：
+**预设**由四部分配置组成：
+
+```mermaid
+flowchart LR
+    P["预设"] --> A["System Prompt<br/>角色与行为规则"]
+    P --> B["模型配置<br/>模型与参数"]
+    P --> C["工具配置<br/>允许的工具列表"]
+    P --> D["触发配置<br/>触发方式与关键词"]
+```
+
 - **System Prompt** - 定义 AI 的角色和行为规则
 - **模型配置** - 指定使用的模型和参数
 - **工具配置** - 允许使用的工具列表
@@ -63,6 +72,16 @@
 4. 保存
 
 ### 方式二：预设文件
+
+创建步骤与文件位置：
+
+```mermaid
+flowchart LR
+    A["在 data/presets/ 目录创建 YAML 文件"] --> B["填写基础参数：name、displayName、description"]
+    B --> C["编写 systemPrompt"]
+    C --> D["配置模型参数与工具参数"]
+    D --> E["重启或加载后生效"]
+```
 
 在 `data/presets/` 目录创建 YAML 文件：
 
@@ -183,6 +202,12 @@ systemPrompt: |
 
 ## 预设继承
 
+```mermaid
+flowchart LR
+    A["基础预设"] --> |"extends 字段继承"| B["新预设"]
+    B --> C["覆盖部分配置<br/>如 temperature、systemPrompt"]
+```
+
 可以基于现有预设创建新预设：
 
 ```yaml
@@ -209,6 +234,13 @@ groups:
 ```
 
 ## 预设优先级
+
+```mermaid
+flowchart LR
+    A["用户指定的预设"] --> B["群组配置的预设"] --> C["全局默认预设"]
+    A -.->|更高优先级覆盖| B
+    B -.->|更高优先级覆盖| C
+```
 
 1. 用户指定的预设
 2. 群组配置的预设

@@ -81,6 +81,17 @@ Authorization: Bearer mcp-xxxxxxxxxxxxxxxxxxxxxxxx
 
 鉴权中间件的校验顺序（源码 `mcpAuthMiddleware`）：
 
+```mermaid
+flowchart TD
+    A[收到 MCP 服务端请求] --> B{mcp.server.enabled 是否为 true}
+    B -- 否 --> C[返回 403 MCP Server 未启用]
+    B -- 是 --> D{是否配置了 apiKey}
+    D -- 否 --> E[返回 500 未配置 API Key]
+    D -- 是 --> F{Token 是否缺失或与 apiKey 不匹配}
+    F -- 不匹配 --> G[返回 401 鉴权失败]
+    F -- 匹配 --> H[放行请求]
+```
+
 1. 若 `mcp.server.enabled` 不为 `true` → 返回 `403`（`MCP Server 未启用`）。
 2. 若未配置 `apiKey` → 返回 `500`（`未配置 API Key`）。
 3. 若 Token 缺失或与 `apiKey` 不匹配 → 返回 `401`（`鉴权失败`）。

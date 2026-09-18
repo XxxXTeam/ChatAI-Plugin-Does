@@ -25,6 +25,14 @@ git clone git@github.com:XxxXTeam/chatai-plugin.git ./plugins/chatai-plugin
 ```
 :::
 
+```mermaid
+flowchart LR
+    A["Step 1: Clone repository"] --> B["Step 2: pnpm install"]
+    B --> C["Step 3: pnpm rebuild better-sqlite3"]
+    C --> D["Step 4: pnpm start"]
+    D --> E["Verify: #ai状态"]
+```
+
 ## Step 2: Install Dependencies {#deps}
 
 ```bash

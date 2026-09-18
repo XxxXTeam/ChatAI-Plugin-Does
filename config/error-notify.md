@@ -34,6 +34,24 @@ if (!notified) {
 
 `notify` 的返回值决定后续行为：
 
+```mermaid
+sequenceDiagram
+    participant C as 对话处理
+    participant N as ErrorNotifier
+    participant T as 通知目标
+    C->>N: 对话失败时调用 notify 传入错误与上下文
+    alt errorNotify.enabled 为 true
+        N->>N: classifyError 分类错误
+        N->>T: 按 cooldown 与 includeDetail 组装并发送通知
+        N-->>C: 返回 true
+        Note over C: 触发者侧保持静默
+    else errorNotify.enabled 不为 true
+        N-->>C: 返回 false
+        C->>C: formatErrorForUser 生成友好提示
+        C->>C: reply 回退发给触发者
+    end
+```
+
 - 返回 `true` 表示错误已被处理：`errorNotify.enabled` 为 `true` 时，无论「已发送」「冷却中」还是「目标发送失败」，一律返回 `true`，错误信息只走通知通道，绝不作为技术错误回复发送到用户对话。
 - 返回 `false` 表示错误通知未启用（`cfg.enabled !== true`），此时回退到 `formatErrorForUser` 向触发者回复友好错误提示。
 
@@ -93,6 +111,16 @@ if (!notified) {
 ## 冷却机制 {#cooldown}
 
 冷却用于防止同类错误在短时间内反复通知：
+
+```mermaid
+flowchart TD
+    A[收到某类型错误] --> B[classifyError 按关键字表归类]
+    B --> C{cooldown 是否小于等于 0}
+    C -- 是 --> D[不做冷却 直接发送通知]
+    C -- 否 --> E{距上次同类通知是否不足 cooldown 秒}
+    E -- 否 --> F[更新时间戳并发送通知]
+    E -- 是 --> G[跳过发送 返回 true 触发者侧静默]
+```
 
 1. 每个错误类型（`rate_limit`、`auth` 等）独立维护上次通知时间戳，存于内存 `Map` 中。
 2. 收到错误时先分类，再检查 `cooldown` 秒数：

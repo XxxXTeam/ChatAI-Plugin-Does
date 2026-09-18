@@ -64,6 +64,17 @@ trigger:
   keywordMode: contains  # contains, startsWith, exact
 ```
 
+```mermaid
+flowchart LR
+    MSG["Incoming group message"] --> M{"keywordMode"}
+    M -->|"startsWith"| S["Check message beginning"]
+    M -->|"exact"| E["Check exact match"]
+    M -->|"contains"| C["Check substrings"]
+    S -->|"Matched"| R["Trigger AI reply"]
+    E -->|"Matched"| R
+    C -->|"Any keyword matched"| R
+```
+
 ## Random Trigger {#random}
 
 ```yaml
@@ -83,6 +94,13 @@ groups:
   987654321:
     trigger:
       mode: at
+```
+
+```mermaid
+flowchart TD
+    G{Group ID}
+    G -->|"123456789"| G1["mode: prefix<br>prefix: #gpt"]
+    G -->|"987654321"| G2["mode: at"]
 ```
 
 ## Cooldown {#cooldown}

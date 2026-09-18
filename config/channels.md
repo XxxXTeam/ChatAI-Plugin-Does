@@ -37,6 +37,15 @@
 | `'least-used'` | 最少使用优先 |
 | `'failover'` | 故障转移（按顺序，失败后换下一个） |
 
+```mermaid
+flowchart TD
+    A[等待新的渠道请求] --> B[按渠道 strategy 从 apiKeys 中选择一个 Key]
+    B --> C{该 Key 调用是否失败}
+    C -- 成功 --> D[返回响应]
+    C -- 失败且为 failover 策略 --> E[按顺序切换下一个 Key 重试]
+    E --> B
+```
+
 多渠道负载均衡由独立的 [loadBalancing 配置](./shared-advanced#loadbalancing) 控制。
 
 ### 渠道状态 status
@@ -156,11 +165,28 @@ channels:
 - 渠道模型映射（`getActualModel`）在 ChatService 主路径与 LlmDelegate 旁路调用中口径一致。
 - 修改渠道后建议在面板执行「测试连接」验证连通性（面板测试入口为渠道编辑页的测试按钮）。
 
+```mermaid
+flowchart LR
+    A[设置 enabled 为 false 的渠道] --> B[后端聚合接口过滤该渠道]
+    B --> C[前端模型下拉不再出现该渠道的模型]
+    D[设置 enabled 为 true 的渠道] --> E[模型出现在可用模型列表]
+```
+
 ## 错误重试与备选模型 {#fallback}
 
 ### 备选模型配置（llm.fallback）
 
 主模型失败时按优先级轮询备选模型：
+
+```mermaid
+flowchart TD
+    A[主模型调用失败] --> B{llm.fallback.enabled}
+    B -- 未启用或重试达到 maxRetries --> C[请求失败]
+    B -- 启用且未超 maxRetries --> D[等待 retryDelay 后切换下一个备选模型]
+    D --> E{调用是否成功}
+    E -- 成功 --> F[返回响应并可按 notifyOnFallback 通知用户]
+    E -- 失败 --> B
+```
 
 ```yaml
 llm:
@@ -195,6 +221,16 @@ llm:
 - 渠道失败会进入渠道冷却与错误计数（`errorCount` / `lastErrorTime`）。
 - 旁路调用按指数退避重试（封顶 10 秒），并可在渠道间切换（受 `llm.fallback.enableChannelSwitch` 控制）。
 
+```mermaid
+flowchart TD
+    A[旁路调用通过 callWithChannelDelegate 发出] --> B[请求失败]
+    B --> C[错误上报渠道冷却并累计 errorCount]
+    C --> D[指数退避等待后重试 封顶 10 秒]
+    D --> E{fallback.enableChannelSwitch 是否为 false}
+    E -- 为 false --> F[维持当前渠道重试]
+    E -- 不为 false --> G[可切换到其他渠道重试]
+```
+
 ## 环境变量
 
 渠道密钥可通过 `${VAR}` 形式引用环境变量吗？**未核实到源码中的展开逻辑**，本页不对此作任何保证。请直接将密钥写入 `apiKey` / `apiKeys`，或使用配置面板的密钥管理。
@@ -202,6 +238,15 @@ llm:
 ## 多渠道选择（loadBalancing）
 
 多渠道场景下，`loadBalancing.strategy` 控制选择策略，支持 `'priority'` / `'round-robin'` / `'random'` / `'least-connection'`，见 [思考 / 渲染 / 输出优化配置](./shared-advanced#负载均衡-loadbalancing)。
+
+```mermaid
+flowchart TD
+    A[多个渠道可用] --> B{loadBalancing.strategy}
+    B --> C[priority 按优先级数值选择]
+    B --> D[round-robin 轮流选择]
+    B --> E[random 随机选择]
+    B --> F[least-connection 选择最少连接者]
+```
 
 ## 下一步
 

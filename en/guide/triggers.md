@@ -63,6 +63,18 @@ trigger:
 
 The at trigger in group chats covers the major protocols in `apps/chat.js` (`checkTrigger`), no extra configuration needed:
 
+```mermaid
+flowchart TD
+    EV["Group message"] --> P{"Protocol"}
+    P -->|"icqq / TRSS loader"| L["e.atBot<br>(at segment qq / data.qq)"]
+    P -->|"QQBot official"| Q["at segment data.user_id"]
+    P -->|"Generic fallback"| F["e.atme / at segment data.all"]
+    L --> C["Bot ID comparison<br>(e.self_id / e.bot.uin / e.bot.self_id / globalThis.Bot.uin)"]
+    Q --> C
+    F --> C
+    C --> R["Trigger reply"]
+```
+
 | Protocol | Detection fields | Notes |
 |:---------|:-----------------|:------|
 | icqq / TRSS loader | `e.atBot` + at segment `qq` / `data.qq` | The loader normalizes at mentions into `e.atBot` |
@@ -116,6 +128,14 @@ Configure triggers visually:
 ## Priority {#priority}
 
 When multiple triggers are enabled:
+
+```mermaid
+flowchart TD
+    MSG["Incoming message"] --> P1["1. Prefix trigger"]
+    P1 -->|"No match"| P2["2. @mention trigger"]
+    P2 -->|"No match"| P3["3. Keyword trigger"]
+    P3 -->|"No match"| P4["4. Random trigger"]
+```
 
 1. Prefix trigger (highest)
 2. @mention trigger

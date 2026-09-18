@@ -4,6 +4,20 @@
 
 ## 开始对话
 
+三种触发方式都进入同一条多轮对话链路：
+
+```mermaid
+sequenceDiagram
+    participant U as 用户
+    participant B as 机器人（ChatAI 插件）
+    U->>B: #chat 我叫小明（前缀触发）
+    B-->>U: 你好小明！（AI 记住上下文）
+    U->>B: @机器人 今天天气怎么样？（@触发）
+    B-->>U: AI 回复
+    U->>B: #chat 还记得我叫什么吗？
+    B-->>U: 当然记得，你是小明！（多轮上下文）
+```
+
 ### 使用触发前缀
 
 默认触发前缀为 `#chat`：
@@ -72,7 +86,20 @@ AI: 当然记得，你是小明！
 
 ## 使用工具
 
+### 工具调用流程
+
 如果启用了工具调用，AI 可以使用工具完成任务：
+
+```mermaid
+sequenceDiagram
+    participant U as 用户
+    participant A as AI
+    participant T as 内置工具
+    U->>A: #chat 现在几点了？
+    A->>T: 调用 get_current_time 工具
+    T-->>A: 返回时间结果
+    A-->>U: 现在是 2024年12月15日 14:30:25
+```
 
 ```
 用户: #chat 现在几点了？

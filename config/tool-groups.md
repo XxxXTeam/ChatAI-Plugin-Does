@@ -6,6 +6,17 @@
 
 `ToolGroupManager.init()` 按以下顺序加载工具组：
 
+```mermaid
+flowchart TD
+    A[ToolGroupManager 初始化] --> B{data/skills.yaml 的 skills.groups 是否存在且有启用组}
+    B -- 存在 --> C[使用它 来源标记 skills-config]
+    B -- 无可用分组 --> D[回退到内置工具类别 toolCategories]
+    D --> E[来源标记 builtin]
+    C --> F[追加已连接的外部 MCP 服务器工具组]
+    D --> F
+    F --> G[来源标记 mcp 索引从内置组之后继续编号]
+```
+
 1. **`data/skills.yaml` 的 `skills.groups`**（优先）：存在且有启用组时使用，来源标记 `skills-config`。
 2. **内置工具类别 `toolCategories`**（回退）：当 skills.yaml 无可用分组时启用，来源标记 `builtin`。
 3. **外部 MCP 服务器工具组**（追加）：已连接的外部 MCP 服务器工具自动成组，索引从内置组之后继续编号，来源标记 `mcp`。
@@ -93,6 +104,19 @@ skills:
 ## 工具组与调度
 
 工具调度器（`buildDispatchPrompt`）会将启用的工具组以 `[索引] 显示名: 描述` 的形式列出，交给调度模型选取。模型返回选中的工具组索引后，`getToolsByGroupIndexes()` 汇总这些组的工具（并应用权限过滤与 `skills.yaml` 的安全检查）供本轮对话使用。
+
+```mermaid
+sequenceDiagram
+    participant 编排 as 对话编排
+    participant 调度 as 工具调度器
+    participant 模型 as 调度模型
+    编排->>调度: 请求构建工具列表
+    调度->>模型: buildDispatchPrompt 列出启用的工具组含索引与显示名
+    模型-->>调度: 返回选中的工具组索引
+    调度->>调度: getToolsByGroupIndexes 汇总工具
+    调度->>调度: 应用权限过滤与安全检查
+    调度-->>编排: 返回本轮对话可用工具
+```
 
 外部 MCP 服务器组会以 `mcp_<服务器名>` 命名、`MCP: <服务器名>` 作为显示名，自动参与调度。
 

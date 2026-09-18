@@ -122,6 +122,8 @@ export default withMermaid({
               text: 'Advanced Usage',
               items: [
                 { text: 'Multi-Channel', link: '/en/guide/channels' },
+                { text: 'Agent Mode', link: '/en/guide/agent' },
+                { text: 'Memory System', link: '/en/guide/memory' },
                 { text: 'Presets & Personas', link: '/en/guide/presets' },
                 { text: 'Triggers', link: '/en/guide/triggers' },
                 { text: 'MCP Tools', link: '/en/guide/mcp' },
@@ -145,6 +147,8 @@ export default withMermaid({
                 { text: 'Basic Config', link: '/en/config/basic' },
                 { text: 'Channels', link: '/en/config/channels' },
                 { text: 'Models', link: '/en/config/models' },
+                { text: 'Personality Isolation', link: '/en/config/personality' },
+                { text: 'Tool Groups', link: '/en/config/tool-groups' },
                 { text: 'Triggers', link: '/en/config/triggers' },
                 { text: 'Context', link: '/en/config/context' },
                 { text: 'Memory', link: '/en/config/memory' },
@@ -157,7 +161,9 @@ export default withMermaid({
               text: 'Advanced Features',
               items: [
                 { text: 'Features', link: '/en/config/features' },
-                { text: 'BYM Mode', link: '/en/config/bym' }
+                { text: 'BYM Mode', link: '/en/config/bym' },
+                { text: 'Error Notification', link: '/en/config/error-notify' },
+                { text: 'Advanced Configuration', link: '/en/config/advanced' }
               ]
             }
           ],
@@ -179,7 +185,10 @@ export default withMermaid({
                 { text: 'LLM Adapters', link: '/en/architecture/adapters' },
                 { text: 'Chat Service', link: '/en/architecture/chat-service' },
                 { text: 'Web Server', link: '/en/architecture/web-server' },
-                { text: 'Storage', link: '/en/architecture/storage' }
+                { text: 'Storage', link: '/en/architecture/storage' },
+                { text: 'Memory System', link: '/en/architecture/memory' },
+                { text: 'Knowledge Graph', link: '/en/architecture/knowledge-graph' },
+                { text: 'Canvas Renderer', link: '/en/architecture/canvas-renderer' }
               ]
             }
           ],
@@ -190,9 +199,32 @@ export default withMermaid({
                 { text: 'Overview', link: '/en/api/' },
                 { text: 'Authentication', link: '/en/api/auth' },
                 { text: 'Configuration', link: '/en/api/config' },
+                { text: 'Chat', link: '/en/api/chat' },
                 { text: 'Tools', link: '/en/api/tools' },
+                { text: 'Skills', link: '/en/api/skills' },
                 { text: 'MCP', link: '/en/api/mcp' },
-                { text: 'Chat', link: '/en/api/chat' }
+                { text: 'Presets', link: '/en/api/presets' },
+                { text: 'Groups', link: '/en/api/groups' },
+                { text: 'Stats', link: '/en/api/stats' }
+              ]
+            },
+            {
+              text: 'Data Management',
+              items: [
+                { text: 'Memories', link: '/en/api/memories' },
+                { text: 'Knowledge Base', link: '/en/api/knowledge' },
+                { text: 'Knowledge Graph', link: '/en/api/graph' },
+                { text: 'Scope', link: '/en/api/scope' }
+              ]
+            },
+            {
+              text: 'Extensions',
+              items: [
+                { text: 'Image Generation', link: '/en/api/image' },
+                { text: 'Game', link: '/en/api/game' },
+                { text: 'Test Panel', link: '/en/api/test-panel' },
+                { text: 'Logs', link: '/en/api/logs' },
+                { text: 'Proxy API', link: '/en/api/proxy-api' }
               ]
             }
           ],
@@ -203,6 +235,7 @@ export default withMermaid({
                 { text: 'Overview', link: '/en/tools/' },
                 { text: 'Built-in Tools', link: '/en/tools/builtin' },
                 { text: 'Custom JS Tools', link: '/en/tools/custom-js' },
+                { text: 'Advanced Development', link: '/en/tools/advanced' },
                 { text: 'MCP Server', link: '/en/tools/mcp-server' },
                 { text: 'Security', link: '/en/tools/security' }
               ]
@@ -317,7 +350,9 @@ export default withMermaid({
             { text: '功能配置', link: '/config/features' },
             { text: '伪人配置', link: '/config/bym' },
             { text: '错误通知', link: '/config/error-notify' },
-            { text: '高级配置', link: '/config/advanced' }
+            { text: '高级配置', link: '/config/advanced' },
+            { text: '渠道高级配置', link: '/config/channels-advanced' },
+            { text: '思考 / 渲染 / 输出优化', link: '/config/shared-advanced' }
           ]
         }
       ],
@@ -340,7 +375,9 @@ export default withMermaid({
             { text: '聊天服务', link: '/architecture/chat-service' },
             { text: 'Web 服务', link: '/architecture/web-server' },
             { text: '存储系统', link: '/architecture/storage' },
-            { text: '记忆系统', link: '/architecture/memory' }
+            { text: '记忆系统', link: '/architecture/memory' },
+            { text: '知识图谱服务', link: '/architecture/knowledge-graph' },
+            { text: '渲染服务', link: '/architecture/canvas-renderer' }
           ]
         }
       ],

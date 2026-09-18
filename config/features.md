@@ -33,6 +33,15 @@ tools:
 
 默认配置内置 6 个工具组（`index` 0-5）。运行时工具组的加载来源与优先级见 [工具组配置](./tool-groups)，`toolGroups` 段是面板修改工具组时由 `saveGroups()`（`config.set('toolGroups', ...)`）写入的持久化产物：
 
+```mermaid
+flowchart LR
+    A[面板修改工具组] --> B[saveGroups 调用 config.set 写入 toolGroups 段]
+    B --> C[持久化到 config.yaml]
+    D[运行时加载工具组] --> E[以 data/skills.yaml 的 skills.groups 为准]
+```
+
+本段示例（持久化产物结构，来源为 skills.yaml 之外的 config.yaml toolGroups 段）：
+
 ```yaml
 toolGroups:
   - index: 0
@@ -64,6 +73,16 @@ toolGroups:
 ## 群聊摘要 groupSummary
 
 自动生成群聊摘要：
+
+```mermaid
+flowchart LR
+    A[收到群聊总结命令] --> B[拉取最近 maxMessages 条消息]
+    B --> C[使用 push.model 或默认模型生成摘要]
+    C --> D[按 push.modernStyle 渲染样式]
+    A --> E{autoTrigger 是否为 true 且在伪人模式下}
+    E -- 是 --> F[自动触发总结]
+    E -- 未启用 --> G[push.enabled 为 true 时按 intervalType 与 pushHour 定时推送]
+```
 
 ```yaml
 features:
@@ -211,6 +230,18 @@ features:
 ```
 
 ## AI 绘图 imageGen
+
+```mermaid
+sequenceDiagram
+    participant U as 用户
+    participant Bot as 机器人
+    participant API as 绘图 API
+    U->>Bot: 发送绘图命令
+    Bot->>Bot: 选择 text2imgModel 或 img2imgModel 回退 model
+    Bot->>API: 调用 apis 中配置的绘图接口
+    API-->>Bot: 返回生成的图片
+    Bot->>U: 按 sendMode 发送图片或二维码链接
+```
 
 ```yaml
 features:

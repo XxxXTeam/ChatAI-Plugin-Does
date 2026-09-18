@@ -78,6 +78,20 @@ context:
 
 当对话上下文达到阈值时，系统会自动压缩对话；压缩相关字段通过 `ContextManager.getContextConfig()` 读取（`src/services/llm/ContextManager.js`）。
 
+```mermaid
+flowchart TD
+    A[checkAndCompress 判定需要压缩] --> B{compressionStrategy 当前取值}
+    B -- summarize --> C[使用 AI 总结旧消息]
+    B -- truncate --> D[直接截断旧消息]
+    B -- sliding-window --> E[滑动窗口保留最近消息]
+    B -- 其他取值 --> C
+    C --> F[压缩后按规则保留最近消息与系统提示]
+    D --> F
+    E --> F
+    F --> G{autoReloadSkills}
+    G -- 为 true --> H[压缩后自动重载 skills 注入]
+```
+
 ::: warning 这些是可选配置项
 以下压缩相关字段默认使用 `getContextConfig()` 的内置回退值，按需手动添加到 `context` 段即可：
 :::
@@ -114,6 +128,19 @@ context:
 ### 触发条件
 
 压缩是否触发由 `checkAndCompress` 决定（源码 `ContextManager`）：
+
+```mermaid
+flowchart TD
+    A[checkAndCompress 检查] --> B{maxTokens 是否大于 0}
+    B -- 是 --> C[估算当前消息 token 数]
+    C --> D{是否超过 maxTokens 乘 compressionThreshold}
+    D -- 是 --> E[触发压缩]
+    D -- 否 --> F[继续等待]
+    B -- 未配置或为 0 --> G[统计非 system 消息数]
+    G --> H{是否超过 maxMessages}
+    H -- 是 --> E
+    H -- 否 --> F
+```
 
 - 当 `maxTokens > 0` 时：估算当前消息 token 数，超过 `maxTokens × compressionThreshold` 即触发压缩。
 - 当 `maxTokens` 未配置或为 `0` 时：跳过 token 判断，改用消息数判断——非 system 消息数超过 `maxMessages` 即触发。

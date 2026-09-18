@@ -10,6 +10,15 @@ HTTP 出口见[知识图谱接口](/api/graph)，模型侧工具见
 
 ## 数据模型
 
+```mermaid
+flowchart LR
+    KG["知识图谱 SQLite 表"] --> E["kg_entities<br/>实体（entity_id、entity_type、name、scope_id、properties、version）"]
+    KG --> R["kg_relationships<br/>关系（relationship_id、from_entity_id、to_entity_id、relation_type、scope_id、properties、version）"]
+    KG --> H1["kg_entity_history<br/>实体历史版本"]
+    KG --> H2["kg_relationship_history<br/>关系历史版本"]
+    KG --> S["kg_scope_sharing<br/>作用域共享（全局/继承）"]
+```
+
 SQLite 表（`DatabaseService` 初始化）：
 
 | 表 | 用途 |
@@ -37,6 +46,16 @@ SQLite 表（`DatabaseService` 初始化）：
 
 ## 关键语义
 
+```mermaid
+flowchart TD
+    A["createEntity 保存实体"] --> B{"同作用域同 entity_type + name 已存在？"}
+    B -->|"是"| C["合并更新，不产生重复实体"]
+    B -->|"否"| D["新建实体"]
+    E["deleteEntity 删除实体"] --> F["清理实体的关系"]
+    F --> G["标记不存在，历史版本保留"]
+    G --> H["POST /api/graph/entities/:id/rollback<br/>恢复为新的当前版本（版本号递增）"]
+```
+
 - **同名合并**：同一作用域内同 `entity_type` + `name` 保存时合并更新，不产生重复实体。
 - **删除保留历史**：删除实体会先清理其关系，再标记不存在；历史版本保留，
   通过 `POST /api/graph/entities/:id/rollback` 恢复为新的当前版本（版本号递增）。
@@ -47,6 +66,15 @@ SQLite 表（`DatabaseService` 初始化）：
   `totalEntities` / `totalRelationships` / `truncated` 的限幅图谱。
 
 ## 抽取侧
+
+```mermaid
+flowchart LR
+    A["对话内容"] --> B["KnowledgeGraphExtractor<br/>LLM 抽取结构化知识"]
+    B --> C{"实体类型白名单<br/>person / thing / place / concept / event"}
+    C --> D["KnowledgeGraphService 写入"]
+    D --> E["kg_* 工具读取（knowledgeGraph.js，12 个工具）"]
+    D --> F["/api/graph HTTP 出口"]
+```
 
 `KnowledgeGraphExtractor` 使用 LLM 从对话中抽取结构化知识，实体类型白名单
 `person` / `thing` / `place` / `concept` / `event`，与模型侧 `kg_*` 工具

@@ -19,6 +19,13 @@ A **preset** defines the AI's personality, behavior, and capabilities through sy
 
 ### Via Web Panel {#web-panel}
 
+```mermaid
+flowchart LR
+    A["Presets tab"] --> B["Add Preset"]
+    B --> C["Fill in name and system prompt"]
+    C --> D["Save"]
+```
+
 1. Go to **Presets** tab
 2. Click **Add Preset**
 3. Fill in name and system prompt
@@ -50,6 +57,15 @@ tools:
 # Optional: Model override
 model: gpt-4o
 temperature: 0.7
+```
+
+```mermaid
+flowchart TD
+    P["data/presets/my_preset.yaml"]
+    P -->|"systemPrompt"| SP["Defines personality and behavior"]
+    P -->|"tools.whitelist"| TW["Grants basic, search"]
+    P -->|"tools.blacklist"| TB["Blocks admin"]
+    P -->|"model + temperature"| MO["Overrides model settings"]
 ```
 
 ## System Prompt Tips {#prompt-tips}
@@ -87,6 +103,14 @@ groups:
     preset: coder
   987654321:
     preset: catgirl
+```
+
+```mermaid
+flowchart TD
+    G{Group ID}
+    G -->|"123456789"| C["preset: coder"]
+    G -->|"987654321"| K["preset: catgirl"]
+    G -->|"Other groups"| D["Default behavior"]
 ```
 
 Or via Web Panel:

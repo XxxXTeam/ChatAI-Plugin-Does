@@ -37,6 +37,20 @@ bym:
 | `presetMap` | object | `{}` | 关键词预设映射，格式 `{ "关键词": "预设ID" }` |
 | `exclusiveFeatures` | array | `['groupSummary', 'userPortrait']` | 仅伪人模式可用的功能 |
 
+伪人触发流程：
+
+```mermaid
+flowchart TD
+    A[收到非 @ 群消息] --> B{随机数小于 bym.probability}
+    B -- 否 --> C[不回复]
+    B -- 是 --> D{inheritPersonality}
+    D -- 为 true --> E[使用用户或群组的独立人格设置]
+    D -- 为 false --> F[使用 bym.systemPrompt]
+    E --> G[按 presetMap 关键词检索预设]
+    F --> G
+    G --> H[可选启用 exclusiveFeatures 中的 groupSummary 与 userPortrait]
+```
+
 ::: danger 历史页面更正
 本页旧版曾出现 `bym.presetId`（默认配置无此键；`config.yaml` 实例中出现过 `bym.presetId: ""`，属于运行期/外部写入的键，不作默认字段收录）与「预设映射按群号」的说法——`presetMap` 的键是**关键词**而非群号。`bym.probability` 旧版解释「随机撤回消息」也是错的，`recall` 才是撤回相关开关。
 :::
@@ -61,6 +75,23 @@ game:
 | `maxTokens` | number | `1000` | 最大输出 Token |
 
 ## 主动聊天 proactiveChat
+
+主动聊天按 `pollInterval` 轮询，结合活跃度与时段/星期乘数计算触发概率：
+
+```mermaid
+flowchart TD
+    A[按 pollInterval 分钟轮询每群] --> B{当前是否处于 quietHoursStart 至 quietHoursEnd 静默时段}
+    B -- 是且未允许覆盖 --> C[本轮跳过]
+    B -- 否 --> D[统计群消息速率与最近活跃情况]
+    D --> E[按 highFreqMessagesPerMinute 与 activeMessagesIn30Min 判定活跃度级别]
+    E --> F[按 activityMultipliers 施加活跃度乘数]
+    F --> G{是否处于 quietHoursStart 与 quietHoursEnd 覆盖的静默时段}
+    G -- 是 --> C
+    G -- 否 --> H[按 timePeriodMultipliers 施加时段乘数]
+    H --> I[启用时再乘 weekdayMultipliers 星期乘数]
+    I --> J[概率限定在 maxProbability 并检查冷却与日量上限]
+    J --> K[命中则生成主动消息]
+```
 
 ```yaml
 proactiveChat:
@@ -150,6 +181,18 @@ proactiveChat:
 :::
 
 ## 会话追踪 conversationTracking
+
+```mermaid
+sequenceDiagram
+    participant U as 用户
+    participant Bot as 机器人
+    participant M as 判断模型
+    U->>Bot: 连续发送消息
+    Bot->>Bot: 按 batchDelay 批量收集
+    Bot->>M: 触发 AI 判断是否继续对话
+    M-->>Bot: 返回判断结果
+    Bot->>U: 按 batchDelay 批量发送回复并追踪 timeout 分钟
+```
 
 智能识别用户是否在继续与机器人对话：
 

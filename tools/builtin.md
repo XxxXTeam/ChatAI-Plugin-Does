@@ -2,6 +2,15 @@
 
 内置工具是插件核心功能的一部分，位于 `src/mcp/tools/` 目录，由 `BuiltinMcpServer` 管理。
 
+```mermaid
+flowchart TB
+    A["src/mcp/tools/ 各模块文件<br/>basic.js、user.js 等 25 类"] --> B["tools/index.js 工具加载器<br/>toolModules 表 + categoryMeta"]
+    B --> C["BuiltinMcpServer 管理"]
+    C --> D["getAllTools 层：去重与启用过滤"]
+    D --> E["AI 工具调用（注入上下文）"]
+    C --> F["Web 面板按类别启用/禁用<br/>热重载，无需重启"]
+```
+
 ::: tip 工具管理
 通过 Web 面板可以按类别启用/禁用工具，支持**热重载**无需重启。
 :::
@@ -82,6 +91,17 @@ src/mcp/tools/
 
 ### 各类工具名清单（与源码导出逐一对齐）
 
+知识图谱类工具按作用域推导 → 读写下沉的服务链路（`scope_id` 规则见下表）：
+
+```mermaid
+flowchart LR
+    A["kg_* 工具收到调用"] --> B{"scope_id 是否显式传入？"}
+    B -->|"是"| D["按传入作用域读写"]
+    B -->|"否"| C["按当前事件上下文推导：<br/>群+用户 → group:{gid}:user:{uid}<br/>仅群 → group:{gid}<br/>仅用户 → user:{uid}<br/>无事件 → global"]
+    C --> D
+    D --> E["kg_entities / kg_relationships 表"]
+```
+
 以下清单按「文件 → 导出 → 工具名」核对，括号内为该类实际导出数量。
 
 #### 知识图谱工具（kg_*，12 个）
@@ -161,9 +181,16 @@ src/mcp/tools/
 
 ## 创建内置工具 {#create-tool}
 
-::: tip 开发流程
-1. 在类别文件中添加工具定义 → 2. 注册新类别（可选）→ 3. 配置启用
-:::
+开发流程：在类别文件中添加工具定义 → 注册新类别（可选）→ 配置启用：
+
+```mermaid
+flowchart LR
+    A["Step 1 在类别文件中添加工具定义<br/>（src/mcp/tools/basic.js）"] --> B{"是新类别？"}
+    B -->|"否"| C["跳过注册"]
+    B -->|"是"| D["Step 2 注册新类别<br/>toolModules + categoryMeta"]
+    C --> E["Step 3 配置启用<br/>builtinTools.enabledCategories<br/>（管理面板 → 工具管理 / GET、PUT /api/tools/builtin/config）"]
+    D --> E
+```
 
 ### Step 1：在对应类别文件中添加工具 {#step-1}
 

@@ -110,6 +110,13 @@ Group channel and usage limit configuration.
 `#ai群限制 100 20` sets group daily limit to 100, per-user daily limit to 20.
 :::
 
+```mermaid
+flowchart TD
+    C["#ai群限制 <group> <user>"] --> L["Set daily limits"]
+    L --> G["Group daily limit"]
+    L --> U["Per-user daily limit"]
+```
+
 ## 👑 Master Commands
 
 Admin commands only for Bot master.
@@ -140,6 +147,15 @@ Plugin version management commands.
 
 Besides command triggers, these methods also work for AI conversations:
 
+```mermaid
+flowchart LR
+    M["Incoming message"] --> T{Trigger method}
+    T -->|"@"| AT["@ the bot"]
+    T -->|"prefix"| PF["#chat prefix"]
+    T -->|"keyword"| KW["Configured keywords<br>(e.g. bot nickname)"]
+    T -->|"random"| RD["Random chance in groups<br>(BYM mode)"]
+```
+
 ### @ Trigger
 Simply @ the bot and send a message to trigger conversation.
 
@@ -169,6 +185,16 @@ Random chance to reply in group chat (BYM mode).
 ```
 
 ### Image Style Conversion
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant B as Bot
+    U->>B: Send an image
+    U->>B: Reply to that image with a keyword (e.g. 手办化)
+    B->>U: Returns converted image
+```
+
 1. Send an image
 2. Reply to that image with `手办化`
 

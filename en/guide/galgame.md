@@ -12,6 +12,13 @@ The Galgame module provides a visual novel-like dialogue game experience with af
 
 ## Quick Start
 
+```mermaid
+flowchart LR
+    A["#游戏开始"] -->|"Generate random character and scene"| B["Gameplay loop"]
+    B -->|"Resume"| A2["#游戏继续"]
+    B -->|"Stop"| A3["#游戏结束"]
+```
+
 ### Start New Game
 
 ```bash
@@ -48,6 +55,17 @@ The weather is nice today
 What do you like to do?
 ```
 
+```mermaid
+sequenceDiagram
+    participant P as Player
+    participant C as Character
+    P->>C: Free-form message
+    C->>P: AI-generated response / story progress
+    C->>P: May present numbered options
+    P->>C: Reply with number or emoji reaction
+    C->>P: Affection and story update
+```
+
 ### Choice Selection
 
 When story choices appear, AI will display something like:
@@ -70,6 +88,14 @@ Special events have success rate checks:
 [Trigger Event: Give Gift|A carefully chosen gift|Success Rate 70]
 [Event Option 1: Give it personally|+15|-5]
 [Event Option 2: Leave it on the desk secretly|+8|-2]
+```
+
+```mermaid
+flowchart TD
+    E["Trigger Event with Success Rate"] --> M{"Check success rate"}
+    M -->|"Success"| A{"Option affects affection"}
+    M -->|"Failed"| N["Outcome becomes negative"]
+    A --> R["Affection changes based on chosen option"]
 ```
 
 Results are determined based on success rate and chosen option.

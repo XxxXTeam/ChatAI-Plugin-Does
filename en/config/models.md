@@ -14,6 +14,18 @@ channels:
       - gpt-4-turbo
 ```
 
+```mermaid
+flowchart TD
+    CH["Channel"] --> M["Default model (model)"]
+    CH --> ML["Available models (models)"]
+    P["Model Parameters"]
+    P --> P1["temperature"]
+    P --> P2["maxTokens"]
+    P --> P3["topP"]
+    P --> P4["frequencyPenalty"]
+    P --> P5["presencePenalty"]
+```
+
 ## Model Parameters {#parameters}
 
 | Parameter | Type | Range | Description |
@@ -93,6 +105,13 @@ groups:
   987654321:
     channel: precise
     model: gpt-4o-mini
+```
+
+```mermaid
+flowchart TD
+    G{Group ID}
+    G -->|"123456789"| C1["channel: creative<br>model: gpt-4o"]
+    G -->|"987654321"| C2["channel: precise<br>model: gpt-4o-mini"]
 ```
 
 ## Preset Override {#preset-override}

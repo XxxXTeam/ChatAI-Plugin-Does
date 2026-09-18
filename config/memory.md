@@ -33,6 +33,19 @@ memory:
 | `maxMemories` | number | `50` | 每用户最大记忆数 |
 | `model` | string | `''` | 记忆提取使用的模型（留空使用默认模型） |
 
+记忆轮询与群聊上下文采集的工作流：
+
+```mermaid
+flowchart TD
+    A[MemoryManager 按 pollInterval 轮询待处理对话] --> B[从对话中提取记忆]
+    A --> C[按 collectInterval 采集群聊上下文]
+    C --> D[每轮最多取 maxMessagesPerCollect 条消息]
+    D --> E{累计消息数达到 analyzeThreshold}
+    E -- 是 --> F[按 extractUserInfo / extractTopics / extractRelations 提取记忆材料]
+    E -- 否 --> C
+    B --> G[写入每用户最大 maxMemories 条记忆]
+```
+
 ### 可选键 minPollInterval
 
 `minPollInterval` 不在默认配置中。`src/services/storage/MemoryManager.js` 轮询时动态读取 `config.get('memory.minPollInterval') || 30`（分钟），即不配置时同一批对话两次轮询的最小间隔为 30 分钟。

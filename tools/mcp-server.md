@@ -2,6 +2,19 @@
 
 通过 MCP 协议接入外部工具服务器。
 
+```mermaid
+flowchart TB
+    A["data/mcp-servers.json<br/>servers 配置"] --> B{"type 类型"}
+    B -->|"npm"| C["自动安装并运行 npm 包<br/>示例：@anthropic/mcp-server-filesystem"]
+    B -->|"stdio"| D["本地进程<br/>command + args + env"]
+    B -->|"sse"| E["SSE 远程服务<br/>url + headers"]
+    B -->|"http"| F["HTTP API<br/>url + headers"]
+    C --> G["工具向 AI 开放"]
+    D --> G
+    E --> G
+    F --> G
+```
+
 ## 配置文件
 
 创建 `data/mcp-servers.json`：
@@ -161,6 +174,20 @@ if __name__ == '__main__':
 
 ### Node.js 示例
 
+```mermaid
+sequenceDiagram
+    participant P as 插件（客户端）
+    participant S as 自己的 MCP 服务器
+    S->>S: 注册 tools/list 处理器
+    S->>S: 注册 tools/call 处理器
+    P->>S: initialize
+    S-->>P: serverInfo（name / version）
+    P->>S: tools/list
+    S-->>P: 工具列表（my_tool）
+    P->>S: tools/call（my_tool）
+    S-->>P: content 文本结果
+```
+
 ```javascript
 // server.js
 import { Server } from '@modelcontextprotocol/sdk/server/index.js'
@@ -254,6 +281,18 @@ curl -X POST http://localhost:3000/api/mcp/servers/name/disconnect
 ```
 
 ## 故障排除
+
+```mermaid
+flowchart TD
+    A["故障现象"] --> B{"服务器连接失败？"}
+    B -->|"是"| B1["检查 npm 包是否已安装"]
+    B -->|"是"| B2["验证命令路径是否正确"]
+    B -->|"是"| B3["查看控制台错误日志"]
+    B -->|"否"| C{"工具不可用？"}
+    C -->|"是"| C1["确认服务器已连接"]
+    C -->|"是"| C2["检查工具是否在服务器的 tools/list 中"]
+    C -->|"是"| C3["验证工具权限配置"]
+```
 
 ### 服务器连接失败
 

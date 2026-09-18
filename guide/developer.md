@@ -403,6 +403,14 @@ sequenceDiagram
 
 ### 本地开发步骤 {#local-dev}
 
+```mermaid
+flowchart TB
+    A["克隆仓库<br/>git clone https://github.com/XxxXTeam/chatai-plugin.git"] --> B["安装依赖<br/>pnpm install"]
+    B --> C["构建原生模块<br/>pnpm rebuild better-sqlite3"]
+    C --> D["开发模式启动前端<br/>cd frontend && pnpm dev"]
+    D -.->|调试| E["node --inspect app<br/>（VSCode attach 端口 9229）"]
+```
+
 ```bash
 # 克隆仓库
 git clone https://github.com/XxxXTeam/chatai-plugin.git

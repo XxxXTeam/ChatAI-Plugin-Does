@@ -126,6 +126,15 @@ The admin panel provides visual configuration interface including:
 A setup wizard will automatically appear on first visit, follow the steps to complete configuration.
 :::
 
+```mermaid
+flowchart LR
+    A["Step 1<br>Select Channel"] --> B["Step 2<br>Enter API Key"]
+    B --> C["Step 3<br>Test Connection"]
+    C --> D["Step 4<br>Select Model"]
+    D --> E["Step 5<br>Select Preset"]
+    E --> F["Step 6<br>Configure Trigger"]
+```
+
 <div class="steps-container">
 
 **Step 1** - Select Channel

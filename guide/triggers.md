@@ -21,6 +21,26 @@
 | `both` | 两者皆可 | - |
 | `none` | 禁用触发 | - |
 
+触发条件与过滤链路（字段均为本页配置键名）：
+
+```mermaid
+flowchart TD
+    M["收到消息"] --> C{"触发条件"}
+    C --> C1["@机器人触发<br/>trigger.group.at / replyBot"]
+    C --> C2["前缀触发<br/>trigger.private / group、prefix、prefixes"]
+    C --> C3["关键词触发<br/>keywords、keywordPatterns"]
+    C --> C4["随机触发<br/>randomRate、randomCooldown"]
+    C1 --> F1{"黑白名单<br/>userWhitelist / userBlacklist<br/>groupWhitelist / groupBlacklist"}
+    C2 --> F1
+    C3 --> F1
+    C4 --> F1
+    F1 -->|通过| F2{"冷却与长度过滤<br/>globalCooldown / userCooldown / groupCooldown<br/>minLength / maxLength / allowImageOnly"}
+    F2 -->|通过| R["触发 AI 回复"]
+    F2 -->|不通过| X["不触发"]
+    F1 -->|不通过| X
+    C -->|"type: none"| X
+```
+
 ## 基础配置
 
 ```yaml

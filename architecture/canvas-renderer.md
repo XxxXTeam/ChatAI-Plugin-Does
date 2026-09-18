@@ -2,6 +2,17 @@
 
 ## 定位
 
+两文件分工与典型调用链路（入口均为本页「底层依赖」起各节所述）：
+
+```mermaid
+flowchart TB
+    A["上层业务：群聊总结 / 用户画像 / 词云等"] --> R["RenderService（单例 renderService）<br/>检测数学公式、加载字体、选择渲染策略"]
+    R --> C["canvasRenderer.js<br/>renderMarkdownToCanvas / unwrapMarkdownFence / renderLatexToImageBuffer"]
+    R --> L["公式区段：renderLatexToImageBuffer 渲染后合成"]
+    L --> C
+    C --> I["输出图片 buffer"]
+```
+
 Markdown/公式渲染为图片的能力由两个文件组成，位于 `src/services/media/`：
 
 | 文件 | 职责 |
@@ -13,6 +24,13 @@ Markdown/公式渲染为图片的能力由两个文件组成，位于 `src/servi
 `pixelRatio` 只接受 `1` 或 `2`。
 
 ## 底层依赖
+
+```mermaid
+flowchart TD
+    A["开始打包渲染"] --> B{"canvasModule 是否已加载？"}
+    B -->|"是"| C["@napi-rs/canvas 绘制<br/>按 pixelRatio 1x 或 2x 输出"]
+    B -->|"否"| D["抛出异常：Canvas 模块未加载，无法渲染图片"]
+```
 
 图片绘制基于 `@napi-rs/canvas`。**模块加载失败不阻止插件启动**：`RenderService`
 在 import 时用 try/catch 引入（走 `logService` 记录调试日志），

@@ -38,6 +38,18 @@ personality:
 
 `priority` 决定在**群聊**场景下按什么顺序查找生效的人设配置，由 `ScopeManager.getEffectiveSettings()` 消费（源码 `src/services/scope/ScopeManager.js`）。系统按数组顺序从高到低查找，命中第一个存在配置的作用域即停止。
 
+```mermaid
+flowchart TD
+    A[getEffectiveSettings 查找人设] --> B{当前是群聊还是私聊}
+    B -- 群聊 --> C[按 personality.priority 数组顺序从高到低逐一查找]
+    C --> D{当前作用域是否已存在配置}
+    D -- 已存在 --> E[命中并停止查找 使用该作用域配置]
+    D -- 不存在 --> J[继续检查下一优先级的组]
+    J --> C
+    B -- 私聊 --> K[固定按 private 到 user 到 default 查找]
+    K --> E
+```
+
 | 作用域 | 含义 | 存储表 |
 |--------|------|--------|
 | `group_user` | 特定群中特定用户的独立配置 | `group_user_scopes` |
@@ -58,6 +70,14 @@ personality:
 ### 独立人设机制
 
 当某作用域设置了自定义人设时，`getIndependentPrompt()` 会直接使用该人设，**不再拼接默认人设**（`isIndependent: true`）；空字符串也视为"用户明确设置为空"的独立人设。仅当所有作用域均未设置人设时，才回退到默认 prompt。
+
+```mermaid
+flowchart TD
+    A[已确定生效的作用域配置] --> B{该作用域是否设置了自定义人设}
+    B -- 已设置 含明确设置为空 --> C[getIndependentPrompt 直接使用该人设 isIndependent 为 true]
+    C --> D[不再拼接默认人设]
+    B -- 所有作用域均未设置 --> E[回退到默认 prompt]
+```
 
 ## presets 预设总开关
 

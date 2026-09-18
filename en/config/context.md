@@ -54,6 +54,14 @@ Summarizes old messages instead of removing.
 → [summary_of_1-3, msg4, msg5, new_msg]
 ```
 
+```mermaid
+flowchart LR
+    FULL["Conversation full"] --> L{"Limit reached?"}
+    L -->|"sliding"| SL["Remove oldest messages"]
+    L -->|"truncate"| TR["Keep only the newest message"]
+    L -->|"smart"| SM["Summarize old messages"]
+```
+
 ## Per-Group Context {#per-group}
 
 ```yaml

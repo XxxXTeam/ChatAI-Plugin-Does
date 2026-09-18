@@ -216,6 +216,18 @@ tools:
 
 ## 工具调用流程
 
+```mermaid
+sequenceDiagram
+    participant U as 用户
+    participant A as AI
+    participant T as 工具
+    U->>A: 用户消息
+    A->>A: 分析消息
+    A->>T: 选择并调用工具
+    T-->>A: 返回工具结果
+    A-->>U: 整合回复
+```
+
 ```
 用户消息 → AI 分析 → 选择工具 → 执行工具 → 返回结果 → AI 整合回复
 ```

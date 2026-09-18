@@ -24,6 +24,20 @@ proxy:
 | `password` | string | - | Auth password |
 | `noProxy` | array | `[]` | Bypass list |
 
+```mermaid
+flowchart LR
+    REQ["API request"] --> G{Proxy enabled?}
+    G -->|"No"| DIRECT["Direct connection"]
+    G -->|"Yes"| T{"type"}
+    T -->|"http"| HP["HTTP proxy<br>host:port"]
+    T -->|"socks5"| SP["SOCKS5 proxy<br>host:port"]
+    HP --> AU{"Auth configured?"}
+    SP --> AU
+    AU -->|"Yes"| A["Send username / password"]
+    AU -->|"No"| SEND["Forward request"]
+    A --> SEND
+```
+
 ## Proxy Types {#types}
 
 ### HTTP Proxy {#http}
@@ -99,6 +113,13 @@ channels:
     baseUrl: https://api.deepseek.com
     proxy:
       enabled: false       # No proxy needed
+```
+
+```mermaid
+flowchart TD
+    R{"Request target"}
+    R -->|"openai channel"| P["Proxy 127.0.0.1:7890"]
+    R -->|"deepseek channel<br>(proxy disabled)"| D["Direct connection"]
 ```
 
 ## Testing Proxy {#testing}

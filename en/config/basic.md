@@ -77,6 +77,17 @@ Masters can:
 - Manage all groups
 - Access admin panel
 
+```mermaid
+flowchart LR
+    U["User"] -->|"Checks masters list"| G["Permission Gate"]
+    G -->|"ID in masters"| P["Full Access"]
+    P --> C1["All commands"]
+    P --> C2["Dangerous tools"]
+    P --> C3["Manage all groups"]
+    P --> C4["Admin panel"]
+    G -->|"Other users"| R["Restricted"]
+```
+
 ## Web Panel {#web}
 
 ```yaml
@@ -112,6 +123,16 @@ Most settings reload without restart:
 
 ```txt
 #ai重载配置
+```
+
+```mermaid
+flowchart LR
+    C["Edit config.yaml"] --> R["#ai重载配置"]
+    R --> S{"Setting type"}
+    S -->|"Web server port"| RS["Requires restart"]
+    S -->|"Database path"| RS
+    S -->|"SSL configuration"| RS
+    S -->|"Most other settings"| A["Applied immediately"]
 ```
 
 Settings requiring restart:

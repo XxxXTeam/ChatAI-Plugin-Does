@@ -32,6 +32,15 @@ personality:
 | `private` | Private chat config | `private_scopes` |
 | `default` | System default persona | Global config |
 
+```mermaid
+flowchart LR
+    LOOK["Lookup in group chat"] -->|"highest"| GU["group_user scope"]
+    GU -->|"not configured"| G["group scope"]
+    G -->|"not configured"| U["user scope"]
+    U -->|"not configured"| D["default scope"]
+    D --> P["Effective persona config"]
+```
+
 ### Scenario Differences
 
 - **Group chat**: reads `personality.priority`; falls back to the built-in default order `['group_user', 'group', 'user', 'default']` when not configured.
@@ -42,6 +51,12 @@ The built-in fallback order is `group_user > group > user > default` (more speci
 :::
 
 ### Independent Persona Mechanism
+
+```mermaid
+flowchart TD
+    Q{"Any scope has a persona set?"} -->|"Yes (isIndependent: true)"| U["That scope's persona used alone<br>(default persona not appended)"]
+    Q -->|"No"| D2["Fall back to the default prompt"]
+```
 
 When a scope has a custom persona set, `getIndependentPrompt()` uses that persona directly and **no longer appends the default persona** (`isIndependent: true`); an empty string is also treated as an "explicitly set to empty" independent persona. Only when no scope has a persona set does the system fall back to the default prompt.
 

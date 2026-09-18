@@ -4,6 +4,14 @@ Configure the long-term memory system.
 
 ## Overview {#overview}
 
+```mermaid
+flowchart LR
+    C["Conversation"] -->|"autoExtract"| X["Extract information"]
+    X --> S["Structured user memories<br>(structured_memories table)"]
+    S -->|"Later chats"| I["Inject relevant memories"]
+    I --> C
+```
+
 The memory system stores structured user memories in the `structured_memories` table, extracts information from conversations automatically, and injects relevant memories into later chats.
 
 ## Basic Configuration {#basic}
@@ -48,7 +56,24 @@ memory:
     extractRelations: true      # Extract user relations
 ```
 
+```mermaid
+flowchart LR
+    M["Group messages"] --> B["Collect<br>(maxMessagesPerCollect)"]
+    B -->|"analyzeThreshold reached"| A["LLM analysis"]
+    A --> U["extractUserInfo"]
+    A --> T["extractTopics"]
+    A --> R["extractRelations"]
+```
+
 ## Memory Summaries {#summary}
+
+```mermaid
+flowchart TD
+    REQ["POST /api/memories/user/:userId/summarize"] --> S["LLM summary<br>each line: [category] content"]
+    S --> ST["Store by category whitelist<br>(profile / preference / event / relation / topic / custom)"]
+    ST -->|"cleanup !== false"| CL["Low-quality cleanup"]
+    CL --> DONE["Done"]
+```
 
 Memory summaries produce structured output: every line is `[category] content` with a category whitelist (`profile` / `preference` / `event` / `relation` / `topic` / `custom`). Model reasoning text never reaches storage. The summarize endpoint also performs cleanup:
 

@@ -98,7 +98,25 @@ llm:
 | `healthCheckModels.claude` | string | `'claude-3-5-haiku-20241022'` | Claude 适配器健康检查兜底模型 |
 | `chatModel` / `codeModel` / `translationModel` | string | `''` | 旧配置兼容字段 |
 
+各场景模型（`models.*`）留空时回退默认模型：
+
+```mermaid
+flowchart TD
+    A[某场景发起模型请求] --> B{llm.models 下对应场景键是否已配置}
+    B -- 已配置 --> C[使用该场景指定的模型]
+    B -- 留空 --> D[回退使用 llm.defaultModel]
+```
+
 `healthCheckModels` 仅在渠道自身未配置 `models` 列表时使用；留空则跳过该适配器的兜底，改用渠道已配置的模型。
+
+```mermaid
+flowchart TD
+    A[渠道健康检查] --> B{渠道自身是否配置了 models 列表}
+    B -- 已配置 --> C[使用渠道已配置的模型]
+    B -- 未配置 --> D{对应适配器类型的 healthCheckModels 是否留空}
+    D -- 已配置 --> E[使用 healthCheckModels 中该适配器的兜底模型]
+    D -- 留空 --> F[跳过该适配器的兜底]
+```
 
 `config.yaml` 实例中出现的 `llm.temperature` / `llm.maxTokens` / `llm.topP` / `llm.frequencyPenalty` / `llm.presencePenalty` 是用户/运行期写入的扩展键，**不在默认配置中**；默认配置的同类参数位于两个层级：渠道级 `channels[].advanced.llm`（见 [渠道高级配置](./channels-advanced)）与各 override 层（`TemperatureResolver` 的解析顺序含 `channel.advanced.llm.temperature`），请按对应层级配置。
 

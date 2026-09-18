@@ -39,6 +39,19 @@
 
 ## 容错机制
 
+```mermaid
+flowchart TB
+    subgraph 输入
+        M["发送消息（sendMessage / _sendMessageImpl）"]
+    end
+    M --> Try["modelsToTry = [主模型, ...去重后的备选模型]<br/>多级容错主循环"]
+    Try --> K["Key 轮换<br/>ChannelManager.getChannelKey<br/>RANDOM / WEIGHTED / LEAST_USED / FAILOVER / ROUND_ROBIN"]
+    Try --> C["渠道切换<br/>getAvailableChannels 取首个可用渠道"]
+    Try --> E["空响应重试<br/>emptyRetries 次"]
+    Try --> F["备选模型（fallback）<br/>主模型渠道全部尝试后才启用<br/>重试上限压缩为 1"]
+    Try --> S["切换链路 append 到 switchChain<br/>随 debugInfo 返回"]
+```
+
 `_sendMessageImpl` 构建 `modelsToTry = [主模型, ...去重后的备选模型]`，在其上运行多级容错主循环。相关配置读取自 `llm.fallback`：
 
 ```javascript
@@ -81,6 +94,18 @@
 
 ## autoCleanOnError
 
+```mermaid
+flowchart TB
+    A["_sendMessageImpl 抛异常"] --> B{"features.autoCleanOnError.enabled === true"}
+    B -->|"是"| C["计算 pureUserId / groupId<br/>historyManager.deleteConversation<br/>contextManager.cleanContext"]
+    B -->|"否"| Z["throw error 上抛"]
+    C --> D["旧格式会话 ID 一并清理<br/>group:{gid}:user:{uid} 或 user:{uid}"]
+    D --> E{"notifyUser !== false 且存在 event.reply"}
+    E -->|"是"| F["回复「历史对话已自动清理」"]
+    E -->|"否"| Z
+    F --> Z
+```
+
 位于 `sendMessage` 外层 `catch`。当 `_sendMessageImpl` 抛异常且 `features.autoCleanOnError.enabled === true` 时触发：
 
 1. 计算 `pureUserId` / `groupId`，调用 `historyManager.deleteConversation` + `contextManager.cleanContext` 清理当前对话
@@ -92,6 +117,18 @@
 
 `src/services/llm/LlmDelegate.js` 为记忆、知识图谱、总结等**绕过 ChatService** 直接
 调用适配器的子模块提供统一契约（`callWithChannelDelegate(message, options)`）：
+
+```mermaid
+flowchart TD
+    A["callWithChannelDelegate(message, options)"] --> B["渠道选择 resolveDelegateCandidates<br/>群独立渠道 → 指定模型最佳渠道 → 已启用带 apiKey 渠道（去重）"]
+    B --> C["流式遵循 resolveChannelStream<br/>显式指定优先，否则渠道 advanced.streaming.enabled"]
+    C --> D["调用适配器"]
+    D --> E{"失败？"}
+    E -->|"是"| F["错误分类 RETRYABLE_ERROR_SAMPLES<br/>auth / quota / timeout / network / server"]
+    F --> G["reportError 上报冷却 → 指数退避<br/>retryDelay * 2^attempt（封顶 10s）→ 切换同模型其他渠道"]
+    G --> D
+    E -->|"否"| H["返回 { response, model, channel, stream, tries }"]
+```
 
 - **渠道选择**：`resolveDelegateCandidates` 优先群独立渠道（含 `groupId` 时），
   其次指定模型的最佳渠道，最后是所有已启用且带 apiKey 的渠道（去重）。
@@ -109,6 +146,16 @@
 
 错误通知由 `errorNotifier`（`src/services/ErrorNotifier.js`）单例提供，在
 `apps/chat.js` 的错误处理链路中调用 `errorNotifier.notify(error, { e, userId, groupId, model })`：
+
+```mermaid
+flowchart TB
+    A["apps/chat.js 捕获错误<br/>errorNotifier.notify(error, { e, userId, groupId, model })"] --> B["classifyError 分类<br/>rate_limit / auth / model_not_found / billing / timeout / network / content_filter / unknown"]
+    B --> C["提取 errorType 作为去重键"]
+    C --> D{"_checkCooldown 冷却<br/>默认 60 秒"}
+    D -->|"冷却期内"| X["跳过重复通知"]
+    D -->|"未冷却"| E["通知 group（群聊）"]
+    D -->|"未冷却"| F["通知 master（私聊主人）"]
+```
 
 - **错误分类**：`classifyError` 从错误消息提取类型键：`rate_limit` / `auth` /
   `model_not_found` / `billing` / `timeout` / `network` / `content_filter` /

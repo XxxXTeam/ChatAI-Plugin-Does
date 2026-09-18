@@ -7,6 +7,15 @@
 - 温度解析顺序（`src/services/llm/TemperatureResolver.js`）：请求 > 预设 > `channels[].advanced.llm.temperature` 等。
 - 模型映射在渠道 `overrides.modelMapping`（`{ "requested": "actual" }`）。
 
+```mermaid
+flowchart TD
+    A[发起一次带温度参数的请求] --> B{请求自身是否携带 temperature}
+    B -- 是 --> C[使用请求指定的温度]
+    B -- 否 --> D{预设是否指定温度}
+    D -- 是 --> E[使用预设温度]
+    D -- 否 --> F[使用 channels 下 advanced.llm.temperature 等配置]
+```
+
 ## 模型参数
 
 ### 参数说明
@@ -68,6 +77,18 @@ llm:
 ```
 
 留空使用默认模型（`llm.defaultModel`）。
+
+```mermaid
+flowchart TD
+    A[按当前场景确定需求 如 chat 或 summary] --> B{llm.models 对应场景键是否有值}
+    B -- 有值 --> C[使用该场景指定的模型]
+    B -- 留空 --> D[回退使用 llm.defaultModel]
+    C --> E[overrides.modelMapping 查询]
+    D --> E
+    E --> F{请求模型是否命中映射键}
+    F -- 命中 --> O[替换为映射值 actual 后发出]
+    F -- 未命中 --> P[按原模型名发出]
+```
 
 ### 预设中指定
 

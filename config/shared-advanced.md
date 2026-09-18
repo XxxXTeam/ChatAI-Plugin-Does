@@ -6,6 +6,17 @@
 
 `thinking` 段是思考（推理）相关的全局默认值，可被渠道、预设、单次请求逐级覆盖（由 `src/services/llm/ThinkingOptions.js` 的 `resolveThinkingOptions` 解析，优先级：请求 > 预设 > 渠道 > 全局）。
 
+```mermaid
+flowchart TD
+    A[resolveThinkingOptions 解析] --> B{单次请求是否携带思考配置}
+    B -- 是 --> C[使用请求级配置]
+    B -- 否 --> D{预设是否配置}
+    D -- 是 --> E[使用预设级配置]
+    D -- 否 --> F{渠道 advanced.thinking 是否配置}
+    F -- 是 --> G[使用渠道级配置]
+    F -- 否 --> H[回退全局 thinking 段]
+```
+
 ```yaml
 thinking:
   enabled: true               # 思考适配总开关（关闭后不解析和显示思考内容）
@@ -77,6 +88,18 @@ output:
 
 消费点：`apps/chat.js` 与 `apps/bym.js` 均读取 `output.longText`、`output.sentenceOutput`。
 
+```mermaid
+flowchart TD
+    A[回复文本生成完毕] --> B{文本长度是否超过 longText.threshold}
+    B -- 否 --> C[按原样发送]
+    B -- 是 --> D{longText.mode 取值}
+    D -- forward --> E[合并转发 标题为 forwardTitle]
+    D -- image --> F[转为图片发送]
+    D -- none --> C
+    G{sentenceOutput.enabled} -- 为 true --> H[按 minDelay 与 maxDelay 随机间隔按句输出]
+    H --> I[allSentences 为 false 时仅伪人模式按句输出]
+```
+
 ## 基础设施配置（同属顶层默认配置段）
 
 ### 流式输出 streaming
@@ -98,6 +121,15 @@ loadBalancing:
 | 字段 | 类型 | 默认值 | 说明 |
 | --- | --- | --- | --- |
 | `loadBalancing.strategy` | string | `'priority'` | 渠道选择策略。`ChannelManager.selectBestChannel` 支持 `'priority'` / `'round-robin'` / `'random'` / `'least-connection'`，未配置时回退 `'priority'` |
+
+```mermaid
+flowchart TD
+    A[存在多个可用渠道] --> B{loadBalancing.strategy 取值}
+    B -- priority --> C[按渠道 priority 数值从小到大选择]
+    B -- round-robin --> D[按顺序轮流选择]
+    B -- random --> E[随机选择]
+    B -- least-connection --> F[选择当前连接数最少的渠道]
+```
 
 ### IP 探针 probe
 

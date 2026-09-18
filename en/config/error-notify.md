@@ -34,6 +34,15 @@ if (!notified) {
 
 The return value of `notify` determines the subsequent behavior:
 
+```mermaid
+flowchart TD
+    F["Conversation fails<br>(apps/chat.js catch)"] --> N["errorNotifier.notify(error, context)"]
+    N --> Q{"notify returns ..."}
+    Q -->|"true (notified or in cooldown)"| SILENT["Requester stays silent"]
+    Q -->|"false (disabled / nothing sent)"| FB["Fallback: formatErrorForUser<br>+ reply to the requester"]
+    FB --> R1["handleAutoRecall"]
+```
+
 - Returning `true` means the error has been handled (a notification was sent successfully, or the error type is currently in its cooldown period and was silenced). In this case the requester **will not** receive an error reply.
 - Returning `false` means error notification is disabled or nothing was sent; the plugin falls back to `formatErrorForUser` to reply to the requester with a friendly error message.
 
@@ -61,6 +70,14 @@ Error notification config is read from `config.get('errorNotify')` with the foll
 | `type` | `string` | Target type: `group` / `user` / `master` |
 | `id` | `string \| number` | Target ID. Group number for `group`, QQ number for `user`; the `master` type needs no `id` |
 
+```mermaid
+flowchart TD
+    T{Target type}
+    T -->|"group"| TG["sendGroupMessage to id<br>(group number)"]
+    T -->|"user"| TU["sendPrivateMessage to id<br>(QQ number)"]
+    T -->|"master"| TM["Private message to each master<br>(_getMasterQQList)"]
+```
+
 How the three types are handled:
 
 - **`group`**: requires `id`; calls `sendGroupMessage` to send the notification to that group.
@@ -72,6 +89,19 @@ Use the `master` type to automatically notify all masters without maintaining QQ
 :::
 
 ## Error Type Classification {#error-types}
+
+```mermaid
+flowchart TD
+    E["Error message text"] --> C["classifyError"]
+    C -->|"matches 429 / Too Many Requests / quota"| T1["rate_limit"]
+    C -->|"matches 401 / Unauthorized / API key"| T2["auth"]
+    C -->|"matches 404 / not found / does not exist"| T3["model_not_found"]
+    C -->|"matches insufficient / balance / billing"| T4["billing"]
+    C -->|"matches timeout / ETIMEDOUT / ECONNRESET"| T5["timeout"]
+    C -->|"matches ENOTFOUND / network / fetch"| T6["network"]
+    C -->|"content AND (filter / block / safety)"| T7["content_filter"]
+    C -->|"None of the above"| T8["unknown"]
+```
 
 `classifyError` matches keywords in the error message text and classifies the error into fixed categories. **Cooldown operates per error type**, so different error types do not affect each other's cooldown.
 
@@ -93,6 +123,17 @@ Use the `master` type to automatically notify all masters without maintaining QQ
 ## Cooldown Mechanism {#cooldown}
 
 Cooldown prevents repeated notifications of the same error type in a short time:
+
+```mermaid
+flowchart TD
+    E["Error occurs"] --> C["classifyError"]
+    C --> T["Error type"] --> K{cooldown <= 0?}
+    K -->|"Yes"| SEND["Pass through (no cooldown)"]
+    K -->|"No"| S{"Cooldown set and<br>same type notified within cooldown seconds?"}
+    S -->|"Yes"| SKIP["Skip sending, return true<br>(requester stays silent)"]
+    S -->|"No"| U["Update timestamp for this type"]
+    U --> NOTIFY["Send notification"]
+```
 
 1. Each error type (`rate_limit`, `auth`, etc.) keeps its own last-notification timestamp in an in-memory `Map`.
 2. On error, the type is classified first, then checked against the `cooldown` seconds:

@@ -40,6 +40,14 @@ features:
     maxLength: 500           # Summary max length
 ```
 
+```mermaid
+flowchart LR
+    S["Cron trigger<br>schedule: 0 23 * * *"] --> C{"Group messages >= minMessages?"}
+    C -->|"Yes"| G["Generate AI summary<br>(max length = maxLength)"]
+    C -->|"No"| SKIP["Skip"]
+    G --> P["Push summary to group"]
+```
+
 ## Welcome Message {#welcome}
 
 Greet new group members:
@@ -80,6 +88,15 @@ features:
     autoAnalyze: false      # Require explicit request
 ```
 
+```mermaid
+flowchart LR
+    IMG["Image in message"] --> S{"Size <= maxSize?"}
+    S -->|"Yes"| A{"autoAnalyze?"}
+    A -->|"true"| AI["Analyze automatically"]
+    A -->|"false"| W["Wait for explicit request"]
+    S -->|"No"| SKIP["Skipped"]
+```
+
 ## Voice Features {#voice}
 
 Voice message handling:
@@ -107,6 +124,15 @@ features:
       - memberLeave
       - poke
       - recall
+```
+
+```mermaid
+flowchart LR
+    EV["Group event"] --> CHK{"Listed in events?"}
+    CHK -->|"memberJoin"| R["AI response"]
+    CHK -->|"memberLeave"| R
+    CHK -->|"poke"| R
+    CHK -->|"recall"| R
 ```
 
 ## Web Panel {#web-panel}
