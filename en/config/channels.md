@@ -111,6 +111,36 @@ Most OpenAI-compatible APIs can be connected using the `openai` type — just ch
 ```
 :::
 
+## Disabled Channels {#disabled-channels}
+
+- Channels with `enabled: false` are excluded from available model lists: the backend aggregation endpoint (group admin panel) and all frontend aggregation points (global config, group editor, users page, image generation page) filter disabled channels, so their models no longer appear.
+- Model mapping (`channelManager.getActualModel`) is consistent between the ChatService main path and LlmDelegate bypass calls.
+
+## Fallback & Bypass Retry (llm.fallback) {#fallback}
+
+```yaml
+llm:
+  fallback:
+    enabled: true            # Enable fallback model polling
+    models: []               # Fallback models, ordered by priority
+    maxRetries: 3            # Max retries
+    retryDelay: 500          # Retry interval (ms)
+    notifyOnFallback: false  # Notify user when switching models
+```
+
+| Param | Type | Default | Description |
+|:------|:-----|:--------|:------------|
+| `enabled` | boolean | `true` | Enable fallback model polling |
+| `models` | array | `[]` | Fallback models, ordered by priority |
+| `maxRetries` | number | `3` | Max retries |
+| `retryDelay` | number | `500` | Retry interval (ms) |
+| `notifyOnFallback` | boolean | `false` | Notify user when switching models |
+| `enableChannelSwitch` | boolean | `true` | Allow channel switching on failures; `!== false` enables it |
+
+::: tip LlmDelegate bypass retry
+Bypass LLM calls (memory, knowledge graph, summaries) go through `LlmDelegate.callWithChannelDelegate`: channel switching with exponential backoff (initial `retryDelay`, capped at 10 seconds), channel error reporting, and per-channel `advanced.streaming` compliance. Setting `enableChannelSwitch: false` disables channel switching for bypass calls.
+:::
+
 ## Load Balancing {#load-balancing}
 
 ```yaml

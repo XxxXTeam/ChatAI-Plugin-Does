@@ -1,4 +1,4 @@
-# Built-in Tools <Badge type="info" text="22 Categories" />
+# Built-in Tools <Badge type="info" text="25 Categories" />
 
 Built-in tools are core plugin functionality, located in `src/mcp/tools/` directory, managed by `BuiltinMcpServer`.
 
@@ -34,11 +34,14 @@ src/mcp/tools/
 ├── bltools.js       # Extended tools
 ├── reminder.js      # Reminders
 ├── imageGen.js      # Image generation
-└── qzone.js         # QQ Zone/Moments
+├── qzone.js         # QQ Zone/Moments
+├── emoji.js         # Emoji management
+├── skills.js        # Skills management
+└── knowledgeGraph.js # Knowledge graph
 ```
 :::
 
-## Tool Categories (22) {#categories}
+## Tool Categories (25) {#categories}
 
 ::: info Category Description
 Each category contains multiple related tools, can be enabled/disabled as a whole.
@@ -68,6 +71,32 @@ Each category contains multiple related tools, can be enabled/disabled as a whol
 | `reminder` | Reminders | Set timed reminders, supports relative/absolute time, repeat | 🟢 Safe |
 | `imageGen` | Image Generation | AI image generation, text-to-image, image-to-image, text-to-video | 🟢 Safe |
 | `qzone` | QQ Zone | Post moments, get moments list, like, delete, signature, etc. | 🟡 Medium |
+| `emoji` | Emoji Management | Save stickers, send saved stickers, list sticker library | 🟢 Safe |
+| `skills` | Skills Management | View, load, unload document skills for models to activate on demand | 🟢 Safe |
+| `knowledgeGraph` | Knowledge Graph | Query and maintain the knowledge graph (entities, relationships, subgraphs) | 🟢 Safe |
+
+### Knowledge Graph Tools (kg_*)
+
+The `knowledgeGraph` category provides 12 tools backed by the `kg_entities` / `kg_relationships` tables.
+
+| Tool | Purpose | Key Parameters |
+|:-----|:--------|:---------------|
+| `kg_get_knowledge` | Get knowledge graph context for the current user/group | `user_id`・`group_id` (default to current session); `max_entities` (default 15, max 100); `include_relations` (default true) |
+| `kg_list_entities` | List entities in a scope | `scope_id` (`global` / `user:<id>` / `group:<id>` / `group:<id>:user:<id>`, derived from session if omitted); `type` (person/thing/place/concept/event); `limit` (default 20, max 100) |
+| `kg_search_entities` | Fuzzy-search entities by name | `query` (required); `type`; `limit` (default 10, max 100) |
+| `kg_save_entity` | Save an entity; same-name entities in the same scope merge automatically | `name`・`type` (required); `scope_id`; `properties` (object, e.g. `{age: 20, job: "student"}`) |
+| `kg_update_entity` | Update entity properties or type (for corrections) | `entity_id` (required); `name`; `type`; `properties` (full replace) |
+| `kg_delete_entity` | Delete an entity (history kept, reversible) | `entity_id` (required) |
+| `kg_entity_history` | Get version history of an entity | `entity_id` (required); `limit` (default 10, max 100) |
+| `kg_entity_relations` | Get entities directly related to an entity | `entity_id` (required) |
+| `kg_save_relation` | Save a relationship between two entities | `from_entity`・`to_entity`・`relation_type` (required; endpoints may be IDs or exact names); `scope_id`; `properties` |
+| `kg_delete_relation` | Delete a relationship (history kept, reversible) | `relationship_id` (required) |
+| `kg_query_subgraph` | Explore the subgraph around an entity | `entity_id` (required); `depth` (default 1, max 3) |
+| `kg_stats` | Get scope statistics (entity/relation counts, type distribution) | `scope_id` (default current session scope; `null` for global totals) |
+
+When `scope_id` is omitted it is derived from the event context: group+user → `group:<gid>:user:<uid>`; group only → `group:<gid>`; user only → `user:<uid>`; no event → `global`. Entity types match the `KnowledgeGraphExtractor` whitelist (`person` / `thing` / `place` / `concept` / `event`).
+
+The `knowledgeGraph` category was added in 2026-09 and is enabled by default for existing configurations via the built-in "auto-enable new categories" logic.
 
 ::: danger shell Category Warning
 `shell` category can execute system commands, has security risks. Only enable in trusted environments and restrict to master permission.

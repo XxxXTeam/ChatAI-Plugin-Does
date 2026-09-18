@@ -2,6 +2,35 @@
 
 本文档记录 ChatAI Plugin 的版本更新历史。
 
+## 2026-09 未发布
+
+> 以下变更已完成开发与验证，尚未随正式版本发布。
+
+### 修复
+
+- 🐛 **协议 tool_call ID 归一化修复** - 旧数据与部分上游中转站将数组下标当作工具调用 ID 下发（数字型 `tool_call id`），OpenAI 兼容端点在请求校验时直接报 400/500。新增 `src/core/adapters/tooling.js` 的 `generateDeterministicToolCallId`（工具名+参数哈希，Gemini 无原生 id 场景使用）与 `normalizeAnyToolCallId`（统一 ID 字符串化口径，空值兜底随机 UUID），并接入 `openai/converter.js` 的 `tool_calls[].id`/`tool_call_id` 出口、`OpenAIClient` 的 `getResponsesOutputItemKey`/`call_id`、`AbstractClient` 全部 6 处工具结果兜底（`normalizeToolCallIdForResult`）及 `ToolApprovalService`
+- 🐛 **Gemini `functionResponse.name` 400 修复** - `gemini/converter.js` 的 `functionResponse.name` 改为多元兜底 `resolveToolResultName`，绝不负空名；不再静默丢弃无 name 的结果 part；functionCall 的 id（含流式）改用确定性 ID
+- 🐛 **at 触发失效修复（多协议兜底）** - `apps/chat.js` 的 `checkTrigger` 补齐 icqq/TRSS（`e.atBot` + at 段 `qq`/`data.qq`）与 QQBot 官方（at 段 `data.user_id`）、`e.atme`、`data.all`（@全体）判定；botId 兜底链 `e.self_id → e.bot.uin → e.bot.self_id → globalThis.Bot.uin`；修复「纯 @ 无文本」与 `replyBot` 组合真值表误吞消息的问题（清理后为空但原始文本非空时回退原文）
+- 🐛 **渠道禁用后模型仍出现在可用列表** - 后端 `groupAdminRoutes.js` 聚合渠道时过滤 `enabled === false`；前端 `useConfig.ts`、群编辑器、`group-admin/page.tsx`、用户页、`imagegen/page.tsx` 等全部聚合点同步过滤
+- 🐛 **hard 参数恒 false 修复** - `memoryRoutes.js` 的 `DELETE /user/:userId` 与 `DELETE /:id` 修复 `hard === 'true'` 查询参数恒为 false 的问题，兼容 `'1'`，硬删除语义可用
+- 🐛 **前端 lint 阻塞构建修复** - eslint-config-next 16.0.8（eslint-plugin-react-hooks 7.x）新规则使 57 处存量 effect 代码报错阻塞 `bun run build`；按 44 个文件逐条重构（初始值冗余置位删除 / 缓冲变量+finally / sync 迁移 setTimeout / IIFE 包裹），未改 eslint 配置、未加 eslint-disable，`bun run lint`/`typecheck`/`build`/`export` 全绿
+
+### 改进
+
+- ⚡ **LlmDelegate 旁路调用统一委托** - 新增 `src/services/llm/LlmDelegate.js`：记忆、知识图谱、上下文总结等旁路 LLM 调用统一遵循渠道 `advanced.streaming`、错误分类上报渠道冷却、渠道切换与指数退避重试；`fallback.enableChannelSwitch` 可关闭渠道切换
+- ⚡ **记忆总结结构化输出** - `MemorySummarizer` 的 `SUMMARY_PROMPT` 改为 `[分类] 内容` 结构化行硬约束（分类白名单 profile/preference/event/relation/topic/custom），显式禁止推理/解释/分析；解析器双通道（分类行白名单直接采信 + 自由文本三关过滤），修复思考过程文本整行入库的坏数据问题，并同步覆盖 `MemoryManager` 轮询总结旧表路径
+- ⚡ **工具轮数限制重构** - `AbstractClient.updateToolCallTracking` 增加简化签名与 exactRepeated 判定；连续重复 3 次或达到 soft 上限（gemini 6 / 非 gemini 10）才 `toolChoice:none` 软降级；硬上限放宽至 `maxRoundsHard=60`
+- ⚡ **工具调用中间句回传** - 无文本纯工具轮次回复轻量提示（`正在调用……`），`ChatAgent` 补齐 `requestOptions` 回调继承，中间文本不再丢弃
+- ⚡ **清理与总结门槛优化** - 总结接口接入 `cleanup` 参数；新增 `POST /api/memory/user/:userId/cleanup`（低质量记忆清理端点）；LLM 总结门槛由桶内 >5 降至桶内 >2 且分类累计 ≥5
+
+### 新增
+
+- ✨ **知识图谱工具集** - 新增 `src/mcp/tools/knowledgeGraph.js` 共 12 个 `kg_*` 工具（`kg_get_knowledge` / `kg_list_entities` / `kg_search_entities` / `kg_save_entity` / `kg_update_entity` / `kg_delete_entity` / `kg_entity_history` / `kg_entity_relations` / `kg_save_relation` / `kg_delete_relation` / `kg_query_subgraph` / `kg_stats`），默认启用该类别；`preserveTargetId` 归一化各协议 user/group 标识，读写两侧一致
+- ✨ **引导模型主动记忆** - `ChatAgent._addToolPrompt` 注入 `KNOWLEDGE_GRAPH_TOOL_GUIDE`，模型发现新记忆时可主动调用 `kg_save_entity` / `save_user_memory`
+- ✨ **渲染全面 Canvas 化** - 渲染由 Puppeteer 迁移至 `src/services/media/canvasRenderer.js`（`@napi-rs/canvas` + `mathjax-full`），`renderMarkdownToImage` 改名为 `renderMarkdownToCanvas`，删除 puppeteer/marked 链路并移除 katex 直接依赖
+
+---
+
 ## [1.3.0] - 2026-07
 
 ### 新增

@@ -4,96 +4,77 @@ Configure the long-term memory system.
 
 ## Overview {#overview}
 
-The memory system allows AI to remember user preferences and past interactions.
-
-```mermaid
-graph LR
-    A[Conversation] --> B[Memory Extraction]
-    B --> C[Vector Database]
-    C --> D[Memory Retrieval]
-    D --> E[Context Injection]
-```
+The memory system stores structured user memories in the `structured_memories` table, extracts information from conversations automatically, and injects relevant memories into later chats.
 
 ## Basic Configuration {#basic}
 
 ```yaml
 memory:
-  enabled: true           # Enable memory system
-  maxMemories: 1000       # Max memories per user
+  enabled: false          # Enable memory system
+  storage: database       # Storage: database | file
   autoExtract: true       # Auto-extract from conversations
-  similarityThreshold: 0.7  # Retrieval threshold
+  pollInterval: 5         # Poll interval (minutes)
+  minPollInterval: 30     # Min interval between two poll summaries for
+                          # the same conversation target (minutes);
+                          # defaults to 30 when unset. Read dynamically
+                          # by MemoryManager.pollAndSummarize.
+  maxMemories: 50         # Max memories per user
+  model: ""               # Model for memory extraction (empty = default)
 ```
 
 ## Configuration Options {#options}
 
 | Option | Type | Default | Description |
 |:-------|:-----|:--------|:------------|
-| `enabled` | boolean | `true` | Enable memory |
-| `maxMemories` | number | `1000` | Max per user |
+| `enabled` | boolean | `false` | Enable memory |
+| `storage` | string | `database` | Storage backend |
 | `autoExtract` | boolean | `true` | Auto-extract memories |
-| `similarityThreshold` | number | `0.7` | Match threshold |
-| `retrievalCount` | number | `5` | Max memories per query |
+| `pollInterval` | number | `5` | Poll interval (minutes) |
+| `minPollInterval` | number | `30` | Min interval between poll summaries per target (minutes) |
+| `maxMemories` | number | `50` | Max memories per user |
+| `model` | string | `""` | Extraction model (empty = default) |
 
-## Memory Types {#types}
+## Group Context Collection {#group-context}
 
-| Type | Description | Example |
-|:-----|:------------|:--------|
-| **Preference** | User preferences | "Likes jazz music" |
-| **Fact** | Personal facts | "Birthday is May 15" |
-| **Context** | Conversation context | "Working on a Python project" |
+```yaml
+memory:
+  groupContext:
+    enabled: true               # Enable group context collection
+    collectInterval: 10         # Collection interval (minutes)
+    maxMessagesPerCollect: 50   # Max messages per collection
+    analyzeThreshold: 20        # Min messages to trigger analysis
+    extractUserInfo: true       # Extract user info
+    extractTopics: true         # Extract discussion topics
+    extractRelations: true      # Extract user relations
+```
+
+## Memory Summaries {#summary}
+
+Memory summaries produce structured output: every line is `[category] content` with a category whitelist (`profile` / `preference` / `event` / `relation` / `topic` / `custom`). Model reasoning text never reaches storage. The summarize endpoint also performs cleanup:
+
+```http
+POST /api/memories/user/:userId/summarize
+POST /api/memories/user/:userId/cleanup
+```
+
+| Param | Type | Default | Description |
+|:------|:-----|:--------|:------------|
+| `useLLM` | boolean | `true` | Use LLM summarization |
+| `cleanup` | boolean | `true` | Run low-quality cleanup after summary (`false` / `'false'` skips it) |
+| `groupId` | string | - | Limit to group |
+| `model` | string | - | Summary model override |
+
+Also see [Memory Command](./features) and the [API reference](/en/api/) for details.
 
 ## Manual Memory Commands {#commands}
 
 ```txt
-#记忆 添加 喜欢周杰伦的歌    # Add memory
-#记忆 列表                   # List memories
-#记忆 删除 1                 # Delete by ID
-#清除记忆                    # Clear all memories
-```
-
-## API Access {#api}
-
-```javascript
-// Add memory
-await fetch('/api/memory', {
-  method: 'POST',
-  body: JSON.stringify({
-    userId: '123456789',
-    content: 'Prefers dark mode'
-  })
-})
-
-// Get memories
-const memories = await fetch('/api/memory?userId=123456789')
-```
-
-## Storage Backend {#storage}
-
-Default: SQLite with vector extension
-
-```yaml
-memory:
-  storage:
-    type: sqlite           # sqlite, postgres
-    path: ./data/memory.db
-```
-
-## Privacy {#privacy}
-
-::: warning User Privacy
-- Memories are per-user and private
-- Users can view and delete their memories
-- Consider data retention policies
-:::
-
-```yaml
-memory:
-  retention:
-    maxAge: 365            # Days to keep memories
-    autoCleanup: true      # Auto cleanup old memories
+#ai添加记忆 @用户 喜欢吃披萨    # Add memory (master)
+#ai查看记忆                    # List memories
+#ai清除记忆                    # Clear memories
 ```
 
 ## Next Steps {#next}
 
-- [Context](./context) - Context management
+- [Getting Started](/en/guide/getting-started) - Memory usage guide
 - [Features](./features) - Feature settings

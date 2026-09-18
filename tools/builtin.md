@@ -1,4 +1,4 @@
-# 内置工具 <Badge type="info" text="24 Categories" />
+# 内置工具 <Badge type="info" text="25 Categories" />
 
 内置工具是插件核心功能的一部分，位于 `src/mcp/tools/` 目录，由 `BuiltinMcpServer` 管理。
 
@@ -36,11 +36,12 @@ src/mcp/tools/
 ├── imageGen.js      # 绘图服务
 ├── qzone.js         # QQ空间/说说
 ├── emoji.js         # 表情包管理
-└── skills.js        # Skills 技能管理
+├── skills.js        # Skills 技能管理
+└── knowledgeGraph.js # 知识图谱
 ```
 :::
 
-## 工具类别（24个）{#categories}
+## 工具类别（25个）{#categories}
 
 ::: info 类别说明
 每个类别包含多个相关工具，可按类别整体启用/禁用。
@@ -72,6 +73,30 @@ src/mcp/tools/
 | `qzone` | QQ空间/说说 | 发布说说、获取说说列表、点赞、删除说说、个性签名等 | 🟡 中等 |
 | `emoji` | 表情包管理 | 保存表情包、发送已存表情、列出表情库 | 🟢 安全 |
 | `skills` | Skills 技能管理 | 查看、加载、卸载文档技能，供模型按需启用 skill | 🟢 安全 |
+| `knowledgeGraph` | 知识图谱 | 查询与维护知识图谱（实体、关系、子图），回忆或记录用户/群的结构化知识 | 🟢 安全 |
+
+### 知识图谱工具（kg_*）
+
+`knowledgeGraph` 类别共 12 个工具，统一读写 `kg_entities` / `kg_relationships` 表。
+
+| 工具 | 作用 | 参数要点 |
+|:-----|:-----|:---------|
+| `kg_get_knowledge` | 获取当前用户/群的知识图谱上下文 | `user_id`・`group_id`（默认取当前会话）；`max_entities`（默认 15，最大 100）；`include_relations`（默认 true） |
+| `kg_list_entities` | 列出指定作用域的实体 | `scope_id`（`global` / `user:<id>` / `group:<id>` / `group:<id>:user:<id>`，默认按会话推导）；`type`（person/thing/place/concept/event，五选一）；`limit`（默认 20，最大 100） |
+| `kg_search_entities` | 按名称模糊搜索实体 | `query`（必填）；`type`；`limit`（默认 10，最大 100） |
+| `kg_save_entity` | 保存实体，同作用域同名自动合并更新 | `name`・`type`（必填）；`scope_id`；`properties`（对象，如 `{age: 20, job: "学生"}`） |
+| `kg_update_entity` | 更新实体属性或类型（用户纠正信息时） | `entity_id`（必填）；`name`；`type`；`properties`（整体替换） |
+| `kg_delete_entity` | 删除实体（保留历史可回滚） | `entity_id`（必填） |
+| `kg_entity_history` | 获取实体的历史版本记录 | `entity_id`（必填）；`limit`（默认 10，最大 100） |
+| `kg_entity_relations` | 获取与某实体直接关联的实体（关系列表） | `entity_id`（必填） |
+| `kg_save_relation` | 保存两个实体间的关系 | `from_entity`・`to_entity`・`relation_type`（必填，端点可为 ID 或精确名称）；`scope_id`；`properties` |
+| `kg_delete_relation` | 删除关系（保留历史可回滚） | `relationship_id`（必填） |
+| `kg_query_subgraph` | 以某实体为中心探索子图 | `entity_id`（必填）；`depth`（默认 1，最大 3） |
+| `kg_stats` | 获取作用域统计（实体数、关系数、类型分布） | `scope_id`（默认当前会话作用域；传 `null` 查全局合计） |
+
+`scope_id` 未显式传入时按当前事件上下文推导：群+用户 → `group:<gid>:user:<uid>`；仅群 → `group:<gid>`；仅用户 → `user:<uid>`；无事件 → `global`。实体类型枚举与 `KnowledgeGraphExtractor` 白名单一致（`person` / `thing` / `place` / `concept` / `event`）。
+
+`knowledgeGraph` 为 2026-09 新增类别，既有配置通过「自动启用新增分类」逻辑默认启用。
 
 ::: danger shell 类别警告
 `shell` 类别可执行系统命令，存在安全风险。建议仅在可信环境下启用，并限制为主人权限。

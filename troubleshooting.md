@@ -317,6 +317,52 @@ AI 尝试调用工具但返回错误或无响应
 | `Timeout` | 工具执行超时 | 检查网络或工具逻辑 |
 :::
 
+### `function_response.name` 400 错误 {#function-response-name}
+
+::: danger 错误信息
+Gemini 渠道工具调用返回 400，错误体包含 `function_response.name: Name cannot be empty` 或类似描述
+:::
+
+**原因：**
+
+上游返回的工具结果 part 缺失 `name` 字段时，旧实现直接取 `tcr.name` 传出空名（甚至静默丢弃该结果 part），导致 OpenAI 兼容端点校验失败。
+
+**解决：**
+
+- 插件已内置 `resolveToolResultName` 多元兜底，空名场景会自动回退到合理名称，且不再丢弃无 name 的结果 part；升级到最新版本即可。同类逻辑同样覆盖 OpenAI 适配器的 `tool_call_id` 透传（见下节）。
+- 若升级后仍出现，检查中转渠道返回的 `functionResponse` 结构是否异常，并将完整报错提交 [GitHub Issue](https://github.com/XxxXTeam/chatai-plugin/issues)。
+
+### tool_call_id 400/500 错误 {#tool-call-id}
+
+::: danger 错误信息
+OpenAI 兼容端点返回 400/500，错误中提示 `tool_calls.id` 必须是字符串、`tool_call_id` 类型非法，或消息中存在重复/数字型 ID
+:::
+
+**原因：**
+
+旧数据或部分上游中转站把数组下标当工具调用 ID 下发（数字型 id），插件检查前原样透传，请求在 OpenAI 兼容端点校验阶段被拒。Gemini 侧无原生 id 的场景同样缺少稳定 ID。
+
+**解决：**
+
+- 已在适配器层统一归一化：`normalizeAnyToolCallId` 将数字 ID 字符串化、空值兜底 `crypto.randomUUID()`；Gemini functionCall（含流式）改用 `generateDeterministicToolCallId`（工具名+参数哈希）生成恒定 ID。`AbstractClient` 的 6 处工具结果兜底与 `ToolApprovalService` 共用同一口径。
+- 升级到最新版本后，旧历史消息中的数字 ID 会由 `validateAndCleanMessages` 清洗转正；若仍有报错，请保持日志完整并提交 Issue。
+
+### 记忆中混入思考过程文本 {#memory-thinking-pollution}
+
+::: danger 现象
+`#ai查看记忆` 或 Web 面板中，记忆条目出现「我们只需要输出……」「注意要求……」等模型思考语句
+:::
+
+**原因：**
+
+记忆总结是历史版本中唯一未强制结构化输出的环节，模型输出的推理行被整行当作记忆落库。
+
+**解决：**
+
+- 升级到最新版本（总结提示词已改为 `[分类] 内容` 结构化行硬约束，解析端带锚定正则 + 推理词过滤）。
+- 对已污染数据：先在 Web 面板「整理记忆」重新总结，或使用 `POST /api/memories/user/:userId/cleanup` 清理低质量条目。
+- 轮询总结路径（`memory.enabled` 开启时的历史路线）已同步加入思考行过滤。
+
 ## 性能问题 {#performance}
 
 ### 响应缓慢 {#slow-response}
@@ -480,6 +526,29 @@ grep -i "error\|fail" logs/latest.log
 | `503` | 服务不可用 | 等待服务恢复 |
 | `ECONNREFUSED` | 连接被拒绝 | 检查网络和代理配置 |
 | `ETIMEDOUT` | 连接超时 | 检查网络或增加超时时间 |
+
+## 前端构建问题 {#frontend-build}
+
+### lint 规则误报阻塞构建 {#frontend-lint-block}
+
+::: danger 错误信息
+`bun run build`（或 `next build`）被 ESLint 拦下，报 `react-hooks/set-state-in-effect`、`react-hooks/immutability`、`react-hooks/refs` 等规则错误
+:::
+
+**原因：**
+
+eslint-config-next 16.0.8 携带 eslint-plugin-react-hooks 7.x 新规则，存量代码中大量「effect 内同步调用初始化函数」的写法会被判定为 setState-in-effect 而报错，构建期 lint 直接失败。
+
+**排查与解决：**
+
+- 先确认规则来源：`bun run lint` 复现全部报错，确认报错文件与规则名。
+- 修复方向（保持行为等价，不通过 eslint-disable 或降版本绕过）：
+  1. **删除初始值冗余置位**：effect 里 `setLoading(false)` 之类与初始值相同的调用直接删除；
+  2. **缓冲变量 + finally 收拢**：异步初始化中将 state 写入收敛到 `try/finally` 或函数末尾，避免中途多次置位；
+  3. **同步初始化迁移 `setTimeout`**：纯同步初始化用 `setTimeout(..., 0)` 回调包裹；
+  4. **IIFE 包裹**：`void (async () => { ... })()` 形式。
+- 验证命令：`bun run lint`（0 错误）→ `bun run typecheck` → `bun run build` / `bun run export`。
+- 注意：7.x 编译器不将 `Promise.resolve()` 微任务边界视为可豁免形态，仅 `finally` 收拢、`setTimeout` 回调、void async IIFE 三种形态稳定免报。
 
 ## 标准化排查流程 {#troubleshoot-flow}
 

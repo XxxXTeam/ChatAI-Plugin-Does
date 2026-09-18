@@ -18,6 +18,10 @@ memory:
   # 轮询间隔（分钟）
   pollInterval: 5
   
+  # 同一会话目标两次轮询的最小间隔（分钟）
+  # 未配置时默认 30 分钟；MemoryManager 轮询时动态读取
+  minPollInterval: 30
+  
   # 最大记忆条数
   maxMemories: 50
   
@@ -33,6 +37,7 @@ memory:
 | `storage` | string | `database` | 存储方式 |
 | `autoExtract` | boolean | `true` | 自动提取记忆 |
 | `pollInterval` | number | `5` | 轮询间隔（分钟） |
+| `minPollInterval` | number | `30` | 每个会话目标两次轮询汇总的最小间隔（分钟），在 `pollAndSummarize` 中动态读取 |
 | `maxMemories` | number | `50` | 最大记忆数 |
 
 ## 群聊上下文记忆

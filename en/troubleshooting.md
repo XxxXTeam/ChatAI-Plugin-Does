@@ -300,6 +300,75 @@ AI tries to call tool but returns error or no response
 | `Timeout` | Tool execution timeout | Check network or tool logic |
 :::
 
+### `function_response.name` 400 Error {#function-response-name}
+
+::: danger Error message
+Gemini tool calls return 400 with `function_response.name: Name cannot be empty` or similar.
+:::
+
+**Cause:**
+
+When an upstream tool result part lacks the `name` field, the old implementation forwarded an empty name (or silently dropped the part), and OpenAI-compatible endpoints rejected the request at validation time.
+
+**Solution:**
+
+- The plugin now resolves names via `resolveToolResultName` with multiple fallbacks and no longer drops unnamed result parts; upgrade to the latest version. OpenAI-side `tool_call_id` passthrough is normalized the same way (see next section).
+- If it still happens after upgrading, inspect the relay channel's `functionResponse` structure and file a [GitHub Issue](https://github.com/XxxXTeam/chatai-plugin/issues) with full logs.
+
+### tool_call_id 400/500 Errors {#tool-call-id}
+
+::: danger Error message
+OpenAI-compatible endpoints return 400/500 complaining that `tool_calls.id` must be a string, `tool_call_id` has an invalid type, or messages contain duplicate/numeric IDs.
+:::
+
+**Cause:**
+
+Old data or upstream relays forwarded array indices as numeric tool-call IDs and the plugin passed them through unchanged; the request failed endpoint validation. Gemini-side calls without native IDs also lacked stable identifiers.
+
+**Solution:**
+
+- The adapter layer now normalizes all IDs: `normalizeAnyToolCallId` stringifies numeric IDs and falls back to `crypto.randomUUID()` for empty values; Gemini functionCall IDs (streaming included) use `generateDeterministicToolCallId`. The 6 result-fallback paths in `AbstractClient` and `ToolApprovalService` share the same normalization.
+- After upgrading, numeric IDs in old history are cleaned by `validateAndCleanMessages`; if errors persist, keep full logs and file an issue.
+
+### Thinking Text Pollutes Memories {#memory-thinking-pollution}
+
+::: danger Symptom
+Memory entries contain model reasoning such as "我们只需要输出……" or "注意要求……".
+:::
+
+**Cause:**
+
+Memory summarization used to be the only unstructured pipeline: reasoning lines were stored verbatim as memories.
+
+**Solution:**
+
+- Upgrade to the latest version: the summary prompt now enforces `[category] content` structured lines, and the parser uses anchored regex plus reasoning-phrase filters.
+- For already-polluted data: re-run "整理记忆" in the Web panel, or call `POST /api/memories/user/:userId/cleanup`.
+- The polling summary path (memory polling when `memory.enabled` is on) has the same reasoning-line filters.
+
+## Frontend Build Issues {#frontend-build}
+
+### Lint Rule Errors Block the Build {#frontend-lint-block}
+
+::: danger Error message
+`bun run build` (or `next build`) fails at the lint step with `react-hooks/set-state-in-effect`, `react-hooks/immutability` or `react-hooks/refs` rule errors.
+:::
+
+**Cause:**
+
+eslint-config-next 16.0.8 ships eslint-plugin-react-hooks 7.x rules; legacy "synchronous initialization calls inside effects" patterns trip set-state-in-effect and fail the build-time lint.
+
+**Resolution:**
+
+- Reproduce with `bun run lint` and confirm the exact files and rule names.
+- Refactor behavior-equivalently (do not add eslint-disable or downgrade rules):
+  1. Remove redundant initial-value assignments (e.g. `setLoading(false)` effect calls that match the initial state);
+  2. Buffer variables and consolidate state writes using `try/finally`;
+  3. Move synchronous initialization into a `setTimeout(..., 0)` callback;
+  4. Wrap async initialization as `void (async () => { ... })()`.
+- Verify: `bun run lint` (0 errors) → `bun run typecheck` → `bun run build` / `bun run export`.
+- Note: the 7.x compiler does not treat `Promise.resolve()` microtask boundaries as exempt; only `finally`-consolidated writes, `setTimeout` callbacks and void async IIFEs reliably pass.
+
 ## Performance Issues {#performance}
 
 ### Slow Response {#slow-response}

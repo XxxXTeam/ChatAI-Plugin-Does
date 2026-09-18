@@ -59,6 +59,18 @@ trigger:
 | `random` | Random chance to respond |
 | `atAll` | Respond to @all |
 
+### At-Mention Detection Across Protocols {#at-protocols}
+
+The at trigger in group chats covers the major protocols in `apps/chat.js` (`checkTrigger`), no extra configuration needed:
+
+| Protocol | Detection fields | Notes |
+|:---------|:-----------------|:------|
+| icqq / TRSS loader | `e.atBot` + at segment `qq` / `data.qq` | The loader normalizes at mentions into `e.atBot` |
+| QQBot official | at segment `data.user_id` | Official events have no `atBot` field |
+| Generic fallback | `e.atme`, at segment `data.all` (@all) | @all counts as a mention |
+
+The bot ID comparison uses the chain `e.self_id → e.bot.uin → e.bot.self_id → globalThis.Bot.uin` with string-based soft comparison. A pure @mention with no text does not trigger a reply; if the cleaned text is empty but the original message was not, the original text is used.
+
 ## Keyword Trigger {#keyword}
 
 ```yaml

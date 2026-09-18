@@ -10,7 +10,7 @@ ChatAI Plugin 基于 **MCP (Model Context Protocol)** 标准实现工具系统�
 
 | 来源 | 位置 | 说明 | 热重载 |
 |:-----|:-----|:-----|:------:|
-| **内置工具** | `src/mcp/tools/` | 核心功能，24个类别模块化组织 | ✅ |
+| **内置工具** | `src/mcp/tools/` | 核心功能，25个类别模块化组织 | ✅ |
 | **自定义 JS** | `data/tools/` | 用户脚本，无需修改源码 | ✅ |
 | **外部 MCP** | `data/mcp-servers.json` | npm 包或远程服务器 | ❌ |
 
@@ -303,6 +303,10 @@ return { error: true, message: '操作失败' }
 - `text` 字段会直接展示给 AI，应为人类可读格式
 - 结构化数据适合需要进一步处理的场景
 :::
+
+## 知识图谱工具 {#knowledge-graph-tools}
+
+`src/mcp/tools/knowledgeGraph.js` 提供 12 个 `kg_*` 工具（类别 `knowledgeGraph`），统一读写 `kg_entities` / `kg_relationships` 表，支持实体 CRUD、历史版本、关系网络与子图探索。作用域 `scope_id` 未显式传入时按当前事件上下文推导（`group:<gid>:user:<uid>` / `group:<gid>` / `user:<uid>` / `global`）。完整清单见[内置工具](./builtin#categories)。
 
 ## 开发流程 {#dev-workflow}
 

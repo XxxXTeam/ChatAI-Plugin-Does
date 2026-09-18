@@ -192,6 +192,10 @@ channels:
 
 ## 错误重试配置
 
+::: info 全局备选模型与旁路重试
+`llm.fallback` 的 `maxRetries`/`retryDelay` 及 LlmDelegate 旁路重试说明见[错误重试与备选模型](#fallback)。本节为渠道级重试参数。
+:::
+
 ### 重试参数
 
 | 参数 | 类型 | 默认值 | 说明 |
@@ -269,6 +273,41 @@ channels:
       - 503
     # 只在 429 和 503 时重试，其他错误直接失败
 ```
+
+## 渠道启用与模型列表 {#enabled-list}
+
+- 设置 `enabled: false` 的渠道会被排除：后端聚合接口（群管理面板模型列表）与前端各处模型下拉（全局配置、群编辑器、用户页、绘图页等）均已过滤禁用渠道，其模型不再出现在可用模型列表中。
+- 渠道模型映射（`channelManager.getActualModel`）在 ChatService 主路径与 LlmDelegate 旁路调用中口径一致。
+
+## 错误重试与备选模型 {#fallback}
+
+### 备选模型配置（llm.fallback）
+
+主模型失败时按优先级轮询备选模型：
+
+```yaml
+llm:
+  fallback:
+    enabled: true          # 启用备选模型轮询
+    models: []             # 备选模型列表，按优先级排序
+    maxRetries: 3          # 最大重试次数
+    retryDelay: 500        # 重试间隔(ms)
+    notifyOnFallback: false # 切换模型时是否通知用户
+    enableChannelSwitch: true # 备选/旁路调用是否允许切换渠道（未配置默认允许）
+```
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `enabled` | boolean | `true` | 启用备选模型轮询 |
+| `models` | array | `[]` | 备选模型列表（按优先级排序） |
+| `maxRetries` | number | `3` | 最大重试次数 |
+| `retryDelay` | number | `500` | 重试间隔（ms） |
+| `notifyOnFallback` | boolean | `false` | 切换模型时是否通知用户 |
+| `enableChannelSwitch` | boolean | `true` | 允许渠道切换。LlmDelegate 旁路调用（记忆/知识图谱/总结）读 `llm.fallback`，`!== false` 即允许 |
+
+::: tip LlmDelegate 旁路重试
+记忆、知识图谱、上下文总结等旁路 LLM 调用通过 `LlmDelegate.callWithChannelDelegate` 统一走渠道切换/指数退避重试（初始间隔 `retryDelay`，封顶 10 秒），错误上报渠道冷却，且遵循各渠道 `advanced.streaming` 配置。`enableChannelSwitch: false` 时旁路调用不再切换渠道。
+:::
 
 ## 代理配置
 

@@ -3,7 +3,7 @@
 长期记忆让 AI 记住用户偏好和历史信息，提供更个性化的对话体验。
 
 ::: info 🧠 记忆系统
-记忆系统会自动从对话中提取用户信息，在后续对话中使用，让 AI 更懂你。
+记忆系统会自动从对话中提取用户信息，在后续对话中使用。记忆总结出的结果采用结构化输出：每一行均为 `[分类] 内容`（分类限定为 profile/preference/event/relation/topic/custom，亦支持 `[分类:子类型]`）。
 :::
 
 ## 快速开始 {#quick-start}
@@ -53,6 +53,53 @@ memory:
 | **人际关系** | 👥 | 家人、朋友、同事 | "小红是用户的好朋友" |
 | **话题兴趣** | 💬 | 感兴趣的话题 | "对 AI 技术感兴趣" |
 | **自定义** | 🏷️ | 其他信息 | 任意自定义内容 |
+
+## 记忆总结与结构化输出 {#summary}
+
+记忆总结接口一次完成「合并去重 + LLM 总结 + （可选）低质量清理」：
+
+```http
+POST /api/memories/user/:userId/summarize
+```
+
+**请求体**
+
+```json
+{
+  "useLLM": true,
+  "cleanup": true
+}
+```
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `useLLM` | boolean | `true` | 是否使用 LLM 总结 |
+| `cleanup` | boolean | `true` | 总结后是否执行低质量记忆清理（`cleanup === false` / `'false'` 时跳过，保持既有调用语义） |
+| `groupId` | string | - | 限定群组 |
+| `model` | string | - | 指定总结模型 |
+
+### 结构化输出格式
+
+LLM 总结的结果按行解析入库，每行严格采用 `[分类] 内容`（分类白名单 `profile` / `preference` / `event` / `relation` / `topic` / `custom`）：
+
+```
+[profile] 用户是软件工程师
+[preference] 喜欢喝美式咖啡
+[event] 2026年3月入职新公司
+```
+
+解析规则：
+
+- 带 `[分类]` 前缀的规范化行直接入库（分类经白名单校验）；
+- 自由文本行仅在剥离旧格式前缀并经过三重过滤（行首推理词词表 / 推理词密度 / 元叙述句式）后才入库，模型输出的思考过程、解释语句不会混入记忆。
+
+### 清理接口
+
+```http
+POST /api/memories/user/:userId/cleanup
+```
+
+清理该用户的低质量记忆（低置信度 / 过期 / 过老 / 过短），可在不触发 LLM 总结的情况下单独调用。
 
 ## 管理记忆 {#manage}
 
@@ -195,6 +242,7 @@ memory:
   # 自动提取
   autoExtract: true
   pollInterval: 5
+  minPollInterval: 30   # 会话目标两次轮询汇总最小间隔（分钟），未配置默认 30
   model: ""
   
   # 群聊上下文
@@ -231,6 +279,7 @@ memory:
 | `maxMemories` | number | `50` | 每用户最大记忆数 |
 | `autoExtract` | boolean | `true` | 自动提取记忆 |
 | `pollInterval` | number | `5` | 提取间隔（分钟） |
+| `minPollInterval` | number | `30` | 会话目标两次轮询汇总最小间隔（分钟），代码中动态读取 |
 | `model` | string | `""` | 提取模型（空=默认） |
 
 ## 最佳实践

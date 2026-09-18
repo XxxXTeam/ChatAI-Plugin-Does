@@ -10,7 +10,7 @@ Choose the appropriate development method based on your needs, from simple to co
 
 | Source | Location | Description | Hot Reload |
 |:-------|:---------|:------------|:----------:|
-| **Built-in Tools** | `src/mcp/tools/` | Core functionality, 22 categorized modules | ✅ |
+| **Built-in Tools** | `src/mcp/tools/` | Core functionality, 25 categorized modules | ✅ |
 | **Custom JS** | `data/tools/` | User scripts, no source code modification needed | ✅ |
 | **External MCP** | `data/mcp-servers.json` | npm packages or remote servers | ❌ |
 
@@ -137,6 +137,10 @@ return { error: true, message: 'Operation failed' }
 - `text` field will be shown directly to AI, should be human-readable format
 - Structured data is suitable for scenarios requiring further processing
 :::
+
+## Knowledge Graph Tools {#knowledge-graph-tools}
+
+`src/mcp/tools/knowledgeGraph.js` provides 12 `kg_*` tools (category `knowledgeGraph`) backed by the `kg_entities` / `kg_relationships` tables, covering entity CRUD, version history, relationships, subgraph exploration and scope stats. When `scope_id` is omitted it is derived from the event context (`group:<gid>:user:<uid>` / `group:<gid>` / `user:<uid>` / `global`). See [Built-in Tools](./builtin#categories) for the full list.
 
 ## Development Workflow {#dev-workflow}
 

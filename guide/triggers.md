@@ -41,7 +41,13 @@ trigger:
 
 ```yaml
 trigger:
-  group: at
+  group:
+    enabled: true
+    at: true        # @机器人触发
+    replyBot: true  # 引用机器人消息是否触发（未配置默认视为开启）
+  private:
+    enabled: true
+    mode: always    # always | prefix | off
 ```
 
 ### 使用
@@ -51,10 +57,24 @@ trigger:
 @机器人 帮我写一首诗
 ```
 
+### 多协议 at 判定字段
+
+群聊中的 at 触发判定对主流协议做了全面兜底（`apps/chat.js` 的 `checkTrigger`），无需额外配置：
+
+| 协议/负载 | 判定字段 | 说明 |
+|------|------|------|
+| icqq / TRSS loader | `e.atBot` + at 段 `qq` / `data.qq` | loader 已将 at 归一化到 `e.atBot` |
+| QQBot 官方 | at 段 `data.user_id` | 官方事件没有 `atBot` 字段 |
+| 通用兜底 | `e.atme`、at 段 `data.all`（@全体） | @全体同样视为触达；纯 @ 无文本不回复 |
+
+botId 对比采用兜底链 `e.self_id → e.bot.uin → e.bot.self_id → globalThis.Bot.uin`，并以字符串软比较，避免 icqq 下 ID 字符串/数字类型差异导致 at 判定失效。
+
 ### 注意事项
 
 - 需要机器人有管理员权限或群主权限才能接收 @消息
 - 某些适配器可能需要额外配置
+- 纯 @ 无文本不会触发回复；@ 后清理出的文本为空但原始消息非空时按原文处理，避免吞掉真实提问
+- 引用了机器人但关闭 `replyBot` 的 at 消息不会触发（`(isReplyToBot && replyBotEnabled) || !isReplyToBot`）
 
 ## 前缀触发
 
