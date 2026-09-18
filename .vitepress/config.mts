@@ -1,8 +1,10 @@
 import { defineConfig } from 'vitepress'
 import { withMermaid } from 'vitepress-plugin-mermaid'
 
-// GitHub Pages 使用仓库名作为 base，其他平台使用 /
 const base = process.env.GITHUB_ACTIONS ? '/ChatAI-Plugin-Does/' : '/'
+const laSdkDir = base.replace(/\/$/, '') // '' 或 '/ChatAI-Plugin-Does'
+const laEventPrefix = laSdkDir.replace(/^\//, '') // '' 或 'ChatAI-Plugin-Does'
+const laEventPrefixParam = laEventPrefix ? `,prefix:"${encodeURIComponent(laEventPrefix)}"` : ''
 
 export default withMermaid({
   title: "ChatAI Plugin Does",
@@ -15,23 +17,18 @@ export default withMermaid({
     image: {
       lazyLoading: true
     },
-    // 代码高亮主题
     theme: {
       light: 'github-light',
       dark: 'one-dark-pro'
     },
-    // 支持的语言别名
     languages: [],
-    // 代码块配置
     codeTransformers: [
       {
-        // 添加语言类名便于样式控制
         postprocess(code) {
           return code
         }
       }
     ],
-    // 默认高亮语言
     defaultHighlightLang: 'javascript',
   },
 
@@ -49,32 +46,26 @@ export default withMermaid({
   
   head: [
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' }],
-    // 51.la 统计 - 使用官方推荐的嵌入方式
     ['script', {}, `
-      !function(p){"use strict";!function(t){var s=window,e=document,i=p,c="".concat("https:"===e.location.protocol?"https://":"http://","sdk.51.la/js-sdk-pro.min.js"),n=e.createElement("script"),r=e.getElementsByTagName("script")[0];n.type="text/javascript",n.setAttribute("charset","UTF-8"),n.async=!0,n.src=c,n.id="LA_COLLECT",i.d=n;var o=function(){s.LA.ids.push(i)};s.LA?s.LA.ids&&o():(s.LA=p,s.LA.ids=[],o()),r.parentNode.insertBefore(n,r)}()}({id:"3OtXvS8im2uEkg2s",ck:"3OtXvS8im2uEkg2s",hashMode:true,screenRecord:true});
+      !function(p){"use strict";!function(t){var s=window,e=document,i=p,c="".concat("https:"===e.location.protocol?"https://":"http://","${laSdkDir}/js-sdk-pro.min.js"),n=e.createElement("script"),r=e.getElementsByTagName("script")[0];n.type="text/javascript";n.setAttribute("charset","UTF-8");n.async=!0;n.src=c;n.id="LA_COLLECT";i.d=n;var o=function(){s.LA.ids.push(i)};s.LA?s.LA.ids&&o():(s.LA=p,s.LA.ids=[],o());r.parentNode.insertBefore(n,r)}()}({id:"3OtXvS8im2uEkg2s",ck:"3OtXvS8im2uEkg2s",hashMode:true,screenRecord:true,autoTrack:true${laEventPrefixParam}});
     `],
-    // 51.la 访问统计挂件 - 带调试日志
     ['script', {}, `
       (function(){
-        var s = document.createElement('script');
-        s.id = 'LA-DATA-WIDGET';
-        s.crossOrigin = 'anonymous';
-        s.charset = 'UTF-8';
-        s.src = 'https://v6-widget.51.la/v6/3OtXvS8im2uEkg2s/quote.js?theme=0&f=12';
-        s.onload = function() {
-          console.log('[51.la] 挂件脚本加载完成');
-          console.log('[51.la] LA 对象:', window.LA);
-          console.log('[51.la] 挂件容器:', document.querySelectorAll('[class*="la-"]'));
-          throw new Error('[51.la DEBUG] 挂件脚本已执行完毕，检查上方日志');
-        };
-        s.onerror = function(e) {
-          console.error('[51.la] 挂件脚本加载失败:', e);
-          throw new Error('[51.la DEBUG] 挂件脚本加载失败');
-        };
-        document.head.appendChild(s);
+        function mountWidget(){
+          var s = document.createElement('script');
+          s.id = 'LA-DATA-WIDGET';
+          s.crossOrigin = 'anonymous';
+          s.charset = 'UTF-8';
+          s.src = 'https://v6-widget.51.la/v6/3OtXvS8im2uEkg2s/quote.js?theme=0&col=true&f=12&badge=icon_0&icon=center';
+          s.onerror = function(e) {
+            console.error('[51.la] 挂件脚本加载失败:', e);
+          };
+          document.body.appendChild(s);
+        }
+        if (document.body) mountWidget();
+        else document.addEventListener('DOMContentLoaded', mountWidget);
       })();
     `],
-    // 灵雀性能监控
     ['script', {}, `
       !(function(c,i,e,b){var h=i.createElement("script");var f=i.getElementsByTagName("script")[0];h.type="text/javascript";h.crossorigin=true;h.onload=function(){new c[b]["Monitor"]().init({id:"3OugNPmmWozOTrED",sendSuspicious:true,sendSpaPv:true});};f.parentNode.insertBefore(h,f);h.src=e;})(window,document,"https://sdk.51.la/perf/js-sdk-perf.min.js","LingQue");
     `],

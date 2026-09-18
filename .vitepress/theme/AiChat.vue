@@ -1,7 +1,5 @@
 <script setup>
 import { ref, nextTick, onMounted, onUnmounted, computed } from 'vue'
-
-/* ==================== 配置 ==================== */
 const API_URL = import.meta.env.VITE_AI_CHAT_API_URL || ''
 
 const EXAMPLE_QUESTIONS = [
@@ -10,8 +8,6 @@ const EXAMPLE_QUESTIONS = [
   '伪人模式是什么？怎么开启？',
   'MCP 工具怎么使用？',
 ]
-
-/* ==================== 状态 ==================== */
 const isOpen = ref(false)
 const isLoading = ref(false)
 const inputText = ref('')
@@ -20,8 +16,6 @@ const chatContainer = ref(null)
 const inputRef = ref(null)
 const copiedIdx = ref(-1)
 const hasApiUrl = computed(() => !!API_URL)
-
-/* ==================== 消息处理 ==================== */
 function scrollToBottom() {
   nextTick(() => {
     if (chatContainer.value) {
@@ -126,7 +120,6 @@ async function sendMessage(text) {
   }
 }
 
-/* ==================== UI 交互 ==================== */
 function togglePanel() {
   isOpen.value = !isOpen.value
   if (isOpen.value) {
@@ -166,7 +159,6 @@ function handleGlobalKeydown(e) {
   }
 }
 
-/* ==================== 复制功能 ==================== */
 async function copyMessage(idx) {
   const msg = messages.value[idx]
   if (!msg || !msg.content) return
@@ -177,7 +169,6 @@ async function copyMessage(idx) {
   } catch { /* 复制失败静默处理 */ }
 }
 
-/* ==================== KaTeX 动态加载 ==================== */
 let katexReady = false
 
 /**
@@ -234,7 +225,6 @@ onUnmounted(() => {
   document.removeEventListener('keydown', handleGlobalKeydown)
 })
 
-/* ==================== Markdown 渲染 ==================== */
 
 /**
  * HTML 特殊字符转义
@@ -259,22 +249,15 @@ function renderInline(text) {
     slots.push(html)
     return `%%SLOT_${slots.length - 1}%%`
   }
-
-  /* 1. 保护行内代码 */
   let safe = text.replace(/`([^`]+)`/g, (_, code) =>
     placeholder(`<code class="ai-inline-code">${escapeHtml(code)}</code>`)
   )
-
-  /* 2. 保护行内数学公式 $...$ （避免与 * 等冲突） */
   safe = safe.replace(/\$([^$\n]+?)\$/g, (_, latex) =>
     placeholder(renderLatex(latex.trim(), false))
   )
-
-  /* 3. \( ... \) 行内公式（LaTeX 风格） */
   safe = safe.replace(/\\\((.+?)\\\)/g, (_, latex) =>
     placeholder(renderLatex(latex.trim(), false))
   )
-
   /* 图片（必须在链接之前） */
   safe = safe.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" class="ai-img">')
   /* 链接 */
@@ -293,7 +276,6 @@ function renderInline(text) {
   safe = safe.replace(/\^([^^]+?)\^/g, '<sup>$1</sup>')
   /* 下标 ~text~ （单个 ~ 非删除线） */
   safe = safe.replace(/~([^~]+?)~/g, '<sub>$1</sub>')
-
   /* 还原保护区域 */
   safe = safe.replace(/%%SLOT_(\d+)%%/g, (_, idx) => slots[Number(idx)])
 
@@ -383,8 +365,6 @@ function renderMarkdown(text) {
 
   while (i < lines.length) {
     const line = lines[i]
-
-    /* === 单行数学公式 $$...$$ === */
     const singleMathMatch = line.trim().match(/^\$\$(.+?)\$\$$/) 
     if (singleMathMatch) {
       html.push(`<div class="ai-math-block">${renderLatex(singleMathMatch[1].trim(), true)}</div>`)
@@ -392,7 +372,6 @@ function renderMarkdown(text) {
       continue
     }
 
-    /* === 多行数学公式块 $$ ... $$ === */
     if (line.trim() === '$$') {
       const mathLines = []
       const startI = i
@@ -412,8 +391,6 @@ function renderMarkdown(text) {
       }
       continue
     }
-
-    /* === 多行 \[ ... \] 块级公式 === */
     if (line.trim() === '\\[') {
       const mathLines = []
       const startI = i
@@ -432,8 +409,6 @@ function renderMarkdown(text) {
       }
       continue
     }
-
-    /* === 代码块（未闭合时回退） === */
     if (line.trimStart().startsWith('```')) {
       const lang = line.trim().slice(3).trim()
       const codeLines = []
@@ -457,8 +432,6 @@ function renderMarkdown(text) {
       }
       continue
     }
-
-    /* === 表格 === */
     if (line.trim().startsWith('|') && line.trim().endsWith('|')) {
       const tableLines = []
       while (i < lines.length && lines[i].trim().startsWith('|') && lines[i].trim().endsWith('|')) {
@@ -477,8 +450,6 @@ function renderMarkdown(text) {
       }
       continue
     }
-
-    /* === 引用块（递归渲染内部 Markdown） === */
     if (line.trimStart().startsWith('> ') || line.trim() === '>') {
       const quoteLines = []
       while (i < lines.length && (lines[i].trimStart().startsWith('> ') || lines[i].trim() === '>')) {
@@ -489,8 +460,6 @@ function renderMarkdown(text) {
       html.push(`<blockquote class="ai-blockquote">${innerHtml}</blockquote>`)
       continue
     }
-
-    /* === 标题 # ~ #### === */
     const headingMatch = line.match(/^(#{1,4})\s+(.+)$/)
     if (headingMatch) {
       const level = Math.min(headingMatch[1].length + 1, 5)
@@ -498,15 +467,11 @@ function renderMarkdown(text) {
       i++
       continue
     }
-
-    /* === 水平线 === */
     if (/^(\s*[-*_]){3,}\s*$/.test(line)) {
       html.push('<hr class="ai-hr">')
       i++
       continue
     }
-
-    /* === 无序列表（支持嵌套 + 任务列表） === */
     if (/^\s*[-*]\s+/.test(line)) {
       const indent = line.match(/^(\s*)/)[1].length
       const result = parseListItems(lines, i, indent, false)
@@ -514,8 +479,6 @@ function renderMarkdown(text) {
       i = result.endIndex
       continue
     }
-
-    /* === 有序列表（支持嵌套） === */
     if (/^\s*\d+\.\s+/.test(line)) {
       const indent = line.match(/^(\s*)/)[1].length
       const result = parseListItems(lines, i, indent, true)
@@ -523,14 +486,10 @@ function renderMarkdown(text) {
       i = result.endIndex
       continue
     }
-
-    /* === 空行 === */
     if (!line.trim()) {
       i++
       continue
     }
-
-    /* === 连续文本合并为段落 === */
     const paraLines = []
     while (i < lines.length && lines[i].trim() &&
       !lines[i].trimStart().startsWith('```') &&
@@ -692,7 +651,6 @@ function renderMarkdown(text) {
 </template>
 
 <style scoped>
-/* ==================== 触发按钮 ==================== */
 .ai-trigger-btn {
   position: fixed;
   bottom: 24px;
@@ -725,8 +683,6 @@ function renderMarkdown(text) {
   pointer-events: none;
   transform: scale(0.9);
 }
-
-/* ==================== 右侧面板 ==================== */
 .ai-panel {
   position: fixed;
   top: 0;
@@ -747,8 +703,6 @@ function renderMarkdown(text) {
   z-index: 199;
   background: rgba(0, 0, 0, 0.3);
 }
-
-/* ==================== 面板头部 ==================== */
 .ai-panel-header {
   display: flex;
   align-items: center;
@@ -796,8 +750,6 @@ function renderMarkdown(text) {
   background: var(--vp-c-bg-soft);
   color: var(--vp-c-text-1);
 }
-
-/* ==================== 消息区域 ==================== */
 .ai-panel-body {
   flex: 1;
   overflow-y: auto;
@@ -813,8 +765,6 @@ function renderMarkdown(text) {
   background: var(--vp-c-divider);
   border-radius: 4px;
 }
-
-/* ==================== 欢迎页 ==================== */
 .ai-welcome {
   display: flex;
   flex-direction: column;
@@ -867,8 +817,6 @@ function renderMarkdown(text) {
   background: var(--vp-c-brand-soft);
   color: var(--vp-c-brand-1);
 }
-
-/* ==================== 消息样式 ==================== */
 .ai-msg {
   margin-bottom: 16px;
 }
@@ -1148,7 +1096,6 @@ function renderMarkdown(text) {
   margin: 12px 0;
 }
 
-/* ==================== 打字动画 ==================== */
 .ai-typing {
   display: flex;
   gap: 4px;
@@ -1172,7 +1119,6 @@ function renderMarkdown(text) {
   40% { transform: scale(1); }
 }
 
-/* ==================== 底部输入区 ==================== */
 .ai-panel-footer {
   padding: 12px 16px;
   border-top: 1px solid var(--vp-c-divider);
@@ -1235,7 +1181,6 @@ function renderMarkdown(text) {
   cursor: not-allowed;
 }
 
-/* ==================== 面板动画 ==================== */
 .ai-panel-enter-active {
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -1262,7 +1207,6 @@ function renderMarkdown(text) {
   opacity: 0;
 }
 
-/* ==================== 移动端适配 ==================== */
 @media (max-width: 768px) {
   .ai-panel {
     width: 100vw;
