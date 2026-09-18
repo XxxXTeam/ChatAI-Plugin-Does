@@ -25,6 +25,189 @@ graph LR
     E --> F
 ```
 
+## Skills File System {#skills-files}
+
+In addition to the three tool sources above, the system also supports loading skill documents from the `data/skills` directory:
+
+| File Format | Description | Auto Activation |
+|-------------|-------------|:---------------:|
+| `SKILL.md` | Markdown frontmatter + instruction body | Per `autoActivate` config |
+| `*.skill.yaml` | YAML skill definition | Per `autoActivate` config |
+| `*.skill.json` | JSON skill definition | Per `autoActivate` config |
+
+### Skill Loading Mechanism
+
+1. **Default exposure**: all skill files are scanned at startup, exposing only the skill list (name + description)
+2. **Explicit loading**: the model requests the full skill content through the `load_skill` tool
+3. **Auto injection**: skills with `autoActivate: true` are injected automatically at conversation start
+4. **Context reload**: already-loaded skills are re-injected after context compression
+
+### Scan Paths
+
+The following directories are scanned by default:
+- `data/skills/` - primary skill directory
+- `.cursor/skills/` - IDE skill directory
+- `.claude/skills/` - Claude Code skill directory
+- `.codex/skills/` - Codex skill directory
+
+## Skills Config File {#skills-yaml}
+
+The full Skills module configuration lives in `data/skills.yaml` (loaded and validated by `src/services/skills/SkillsConfig.js`), decoupled from the MCP server config. The file is auto-created with defaults when missing and supports hot reload (`hasChanged()` detects mtime changes, then `reload()`). All configuration sits under the top-level `skills` key.
+
+### Top-level Structure {#skills-yaml-overview}
+
+```yaml
+skills:
+  enabled: true          # Whether the Skills module is enabled
+  mode: 'hybrid'         # Working mode: hybrid / skills-only / mcp-only
+  sources: {...}         # Tool source config
+  groups: [...]          # Tool group config
+  execution: {...}       # Tool execution config
+  dispatch: {...}        # Dispatch config (lightweight model pre-selects tool groups)
+  documents: {...}       # SKILL.md document skill config
+  security: {...}        # Dangerous tool security config
+```
+
+### Working Mode `mode` {#skills-yaml-mode}
+
+| Value | Description |
+|:------|:------------|
+| `hybrid` | **Default**. Loads both Skills-configured tools (built-in + custom JS) and MCP server tools |
+| `skills-only` | Loads only Skills-configured tools and ignores MCP servers (`isMcpEnabled()` returns `false`) |
+| `mcp-only` | Loads only MCP server tools and ignores built-in and custom JS tools (legacy behavior) |
+
+::: info Invalid value fallback
+`mode` accepts only the three values above; any other value triggers a validation-time warning and falls back to `hybrid`.
+:::
+
+### Tool Sources `sources` {#skills-yaml-sources}
+
+The three tool sources can be enabled/disabled independently, each keeping its own disabled-tool list:
+
+```yaml
+sources:
+  builtin:                 # Built-in tools
+    enabled: true
+    categories: []         # Enabled category list (empty array = enable all)
+    disabledTools: []      # Disabled tools (takes precedence over categories)
+  custom:                  # Custom JS tools
+    enabled: true
+    path: 'data/tools'     # JS tool directory (relative to the plugin root)
+    autoReload: true       # Auto reload on file changes
+  mcp:                     # External MCP server tools
+    enabled: true
+    servers: []            # Enabled server list
+    disabledServers: []    # Disabled server list
+```
+
+::: tip disabledTools merge
+`getDisabledTools()` deduplicates and merges the `disabledTools` of the `builtin`, `custom`, and `mcp` sources; a tool disabled by any source is disabled globally.
+:::
+
+### Tool Groups `groups` {#skills-yaml-groups}
+
+`groups` divides tools into logical groups for dispatch and permission management. User-configured `groups` **completely replace** the defaults (no merging).
+
+```yaml
+groups:
+  - index: 0                    # Group index (unique)
+    name: 'basic'               # Group name (unique)
+    description: 'Basic tools: time, date, lunar date, festivals, system environment info, etc.'
+    tools: ['get_current_time', 'get_lunar_date', ...]  # Tool name list
+    enabled: true               # Whether this group is enabled
+  - index: 6
+    name: 'admin'
+    description: 'Group admin: mute, kick, set group card/title, send announcements, etc.'
+    tools: ['mute_member', 'kick_member', ...]
+    enabled: true
+    requiredPermission: 'admin' # Permission required for this group (optional)
+  - index: 17
+    name: 'shell'
+    description: 'System commands (dangerous tools)'
+    tools: ['execute_command', 'get_system_info', ...]
+    enabled: false              # Dangerous group disabled by default
+    requiredPermission: 'master'
+```
+
+| Field | Type | Description |
+|:------|:-----|:------------|
+| `index` | `number` | Group index, retrievable via `getGroupByIndex()` |
+| `name` | `string` | Group name, retrievable via `getGroupByName()`; warns when missing |
+| `description` | `string` | Group description |
+| `tools` | `string[]` | Tool name list of the group; reset to `[]` when not an array |
+| `enabled` | `boolean` | Whether enabled; `getEnabledGroups()` filters `enabled !== false` |
+| `requiredPermission` | `string` | Permission required for this group (e.g. `admin`, `master`), optional |
+
+### Document Skills `documents` {#skills-yaml-documents}
+
+Controls scanning and injection behavior of document skills like `SKILL.md` (see [Skills File System](#skills-files)):
+
+```yaml
+documents:
+  enabled: true
+  mode: 'auto'                  # auto / all / explicit
+  paths:                        # Directory scan list
+    - 'data/skills'
+    - '.cursor/skills'
+    - '.claude/skills'
+    - '.codex/skills'
+  maxDepth: 6                   # Max directory recursion depth
+  maxFileBytes: 65536           # Max bytes per skill file (reset to 1024 when < 1024)
+  maxPromptChars: 20000         # Max chars injected into the system prompt (reset to 1000 when < 1000)
+```
+
+| `mode` | Matching Behavior |
+|:-------|:------------------|
+| `auto` | **Default**. Matches skills by name/description/relativePath/triggers against the context text |
+| `all` | Injects all skills when none are explicitly specified |
+| `explicit` | Injects only the skills explicitly selected in `selectedNames` |
+
+::: warning Invalid value fallback
+When `mode` is not `auto`/`all`/`explicit`, the default is restored; non-array `paths` and `maxDepth < 0` also restore defaults.
+:::
+
+### Execution Config `execution` {#skills-yaml-execution}
+
+```yaml
+execution:
+  timeout: 30000        # Per-tool timeout (milliseconds); reset to 1000 when < 1000
+  maxParallel: 5        # Max parallelism; reset to 1 when < 1, to 20 when > 20
+  retryOnError: false   # Whether to retry on error
+  maxRetries: 2         # Retry count
+  cacheResults: true    # Whether to cache results
+  cacheTTL: 60000       # Cache TTL (milliseconds)
+```
+
+### Dispatch Config `dispatch` {#skills-yaml-dispatch}
+
+When enabled, a lightweight model first decides which tool groups are needed, reducing token cost:
+
+```yaml
+dispatch:
+  enabled: false        # Disabled by default; can be enabled in the admin panel
+  useSummary: true      # Use tool group summaries in the decision
+  maxGroups: 3          # Max tool groups to select
+```
+
+### Security Config `security` {#skills-yaml-security}
+
+```yaml
+security:
+  dangerousTools:               # Dangerous tool list
+    - kick_member
+    - mute_member
+    - recall_message
+    - write_file
+    - delete_file
+    - execute_command
+  allowDangerous: false         # Whether dangerous tools may execute
+  dangerousRequiredPermission: 'master'  # Permission required for dangerous tools
+```
+
+::: tip Relationship to tool approval
+`security.dangerousTools` affects the risk classification of [tool approval](./security#tool-approval): tools matching the list are rated high risk. Executing dangerous tools must additionally satisfy the `allowDangerous` and `dangerousRequiredPermission` constraints.
+:::
+
 ## Tool Definition Format {#tool-format}
 
 All tools follow the **MCP standard** unified definition format:
@@ -59,42 +242,25 @@ All tools follow the **MCP standard** unified definition format:
 
 ## Context Access {#context-access}
 
-Built-in tools access runtime context through `ToolContext` to get Bot, event, permissions info.
+Tools access runtime context through the second argument `context` of the handler function. Platform differences, target ID types, send-result validation, and fallbacks for unsupported capabilities are all handled by the standard interface.
 
 ::: tip ToolContext API
-`ToolContext` is the core context object during tool execution, defined in `src/mcp/BuiltinMcpServer.js`
+`context` is a request-scoped object; tools created by the model must not import runtime singletons or read protocol-side objects directly.
 :::
 
 ```javascript{1,4,7-9,12,15-16}
-import { getBuiltinToolContext } from '../../mcp/BuiltinMcpServer.js'
-
-handler: async (args) => {
-  const ctx = getBuiltinToolContext()
-  
-  // Get Bot instance (handles multi-Bot environment automatically)
-  const bot = ctx.getBot()
-  // Support specifying Bot ID
-  const specificBot = ctx.getBot(botId)
-  
-  // Get message event
-  const event = ctx.getEvent()
+handler: async (args, context) => {
+  const api = context.getApi()
+  const message = context.message
+  const event = context.getEvent()
   const userId = event?.user_id
   const groupId = event?.group_id
-  
-  // Check if master
-  const isMaster = ctx.isMaster
-  
-  // Get adapter info
-  const adapter = ctx.getAdapter()
-  // Returns: { adapter: 'icqq'|'napcat'|'onebot', isNT: boolean, canAiVoice: boolean }
-  
-  // Shortcut methods
-  ctx.isIcqq()    // Is ICQQ adapter
-  ctx.isNapCat()  // Is NapCat adapter
-  ctx.isNT()      // Supports NT features
-  
-  // Get Bot permission in group
-  const permission = await ctx.getBotPermission(groupId)
+
+  // Check whether the sender is the master
+  const isMaster = context.isMaster()
+
+  // Send/query through the standard interface; do not branch on QQBot, ICQQ, or OneBot inside tools
+  const permission = await api.getBotPermission(groupId)
   // Returns: { role: 'owner'|'admin'|'member', isAdmin: boolean, isOwner: boolean, inGroup: boolean }
 }
 ```
@@ -171,6 +337,7 @@ flowchart LR
 | Document | Use Case | Difficulty |
 |:---------|:---------|:----------:|
 | [Built-in Tools](./builtin) | Deep integration, access internal APIs | ⭐⭐⭐ |
-| [Custom JS Tools](./custom-js) | Quick development, no source modification | ⭐ |
+| [Custom JS Tools](./custom-js) | Quick development, no source modification | ⭐⭐ |
+| [Advanced Development](./advanced) | Advanced techniques and best practices | ⭐⭐⭐ |
 | [MCP Server](./mcp-server) | External services, reuse existing MCP | ⭐⭐ |
 | [Security](./security) | Understand tool security mechanisms | ⭐⭐ |

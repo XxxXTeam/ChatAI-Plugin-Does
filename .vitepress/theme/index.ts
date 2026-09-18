@@ -56,7 +56,9 @@ const enhanceCodeBlocks = () => {
       }
       
       copyBtn.onclick = async () => {
-        const code = group.querySelector('div[class*="language-"]:not([style*="display: none"]) code')
+        const activeBlock = group.querySelector('div[class*="language-"].active')
+        const fallbackBlock = group.querySelector('div[class*="language-"]')
+        const code = (activeBlock || fallbackBlock)?.querySelector('code')
         if (code) {
           await navigator.clipboard.writeText(code.textContent || '')
           copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>'

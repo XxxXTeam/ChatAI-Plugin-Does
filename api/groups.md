@@ -1,414 +1,156 @@
-# 群组管理 API <Badge type="tip" text="REST API" />
+# 群组管理 API
 
-群组管理 API 提供群组级别的配置和管理功能。
+群组管理路由位于 `src/services/routes/groupAdminRoutes.js`，挂载于 `/api/group-admin`
+（**不经插件全局 JWT**，使用独立的群管理会话体系）。
 
-::: warning 🔐 权限要求
-此 API 需要**群管理权限**，普通用户无法访问其他群的配置。
-:::
+## 认证体系
 
-## 概述 {#overview}
+- 一次性登录码：`generateGroupAdminLoginCode` 生成 6 位字母数字码（5 分钟有效，用后即焚）。
+- 登录码兑换：`POST /login` 返回会话 JWT（签发参数 `type: 'group_admin_session'`，
+  密钥为 `web.groupAdminSecret`，HS256，24 小时）。
+- 后续请求以 `Authorization: Bearer <token>` 携带，由 `groupAdminAuth` 中间件校验，
+  并把 `{ groupId, userId }` 写入 `req.groupAdmin`。
 
 | 项目 | 值 |
 |:-----|:---|
 | **Base Path** | `/api/group-admin` |
-| **认证** | 需要登录 |
-| **权限** | 需要群管理权限 |
+| **认证** | 群管理会话 Token（Bearer） |
+| **限流** | 登录接口每 IP 60 秒最多 5 次，超出返回 `429` |
 
-## 接口列表
+## 登录与校验
 
-### 获取群列表
-
-获取当前用户可管理的群列表。
+### 群管理员登录
 
 ```http
-GET /api/group-admin/groups
+POST /api/group-admin/login
 ```
 
-**响应示例**
+**请求体**
 
 ```json
-{
-  "success": true,
-  "data": {
-    "groups": [
-      {
-        "id": "123456789",
-        "name": "测试群",
-        "memberCount": 100,
-        "enabled": true,
-        "preset": "default",
-        "hasCustomConfig": true
-      }
-    ]
-  }
-}
+{ "code": "A1B2C3" }
 ```
+
+`code` 缺失返回 `400`（`请输入登录码`）；无效/过期/已使用返回 `401`。
+
+**响应（data）**
+
+```json
+{ "token": "<jwt>", "groupId": "123456789", "userId": "111222333", "expiresIn": 86400 }
+```
+
+### 验证 Token
+
+```http
+GET /api/group-admin/verify
+```
+
+**响应（data）**
+
+```json
+{ "valid": true, "groupId": "123456789", "userId": "111222333" }
+```
+
+## 群配置
 
 ### 获取群配置
 
-获取指定群的详细配置。
-
 ```http
-GET /api/group-admin/groups/:groupId/config
+GET /api/group-admin/config
 ```
 
-**路径参数**
-
-| 参数 | 类型 | 说明 |
-|:-----|:-----|:-----|
-| `groupId` | string | 群号 |
-
-**响应示例**
-
-```json
-{
-  "success": true,
-  "data": {
-    "groupId": "123456789",
-    "enabled": true,
-    "preset": "default",
-    "triggers": {
-      "prefix": ["#ai"],
-      "at": true,
-      "random": 0
-    },
-    "tools": {
-      "enabled": true,
-      "allowedCategories": ["basic", "user"],
-      "disabledTools": []
-    },
-    "memory": {
-      "enabled": true
-    },
-    "rateLimit": {
-      "enabled": false,
-      "maxRequests": 10,
-      "windowSeconds": 60
-    }
-  }
-}
-```
+返回该群的完整配置聚合（作用域设置 + 预设列表 + 渠道列表 + 知识库列表 + 表情统计），
+字段以代码为准，包括：`groupId`、`groupName`、`systemPrompt`、`presetId`、`enabled`、
+`triggerMode`、`customPrefix`、`toolsEnabled`、`imageGenEnabled`、`summaryEnabled`、
+`eventHandler`、`emojiThief`、`bym`（含 `proactive` 与 `style` 子对象）、`chat`、
+`imageGen`、`game`、`models`（chat/tools/dispatch/vision/image/search/bym/summary/profile/game）、
+`listMode`、`blacklist`、`whitelist`、`knowledgeIds`、`independentChannel`
+（apiKey 以 `****` + 末 4 位掩码，`forbidGlobal` 字段不返回到群管理面板）、
+`usageLimit`、`summary`（含 `push`）、`tools`、`events`（welcome/goodbye/poke/recall/ban/
+luckyKing/honor/essence/admin）、`emojiStats`、`presets`、`channels`、`knowledgeBases`。
 
 ### 更新群配置
 
-更新指定群的配置。
+```http
+PUT /api/group-admin/config
+```
+
+请求体与 GET 返回结构同构（按 `emojiThief` / `bym` / `chat` / `imageGen` / `game` /
+`models` / `tools` / `events` / `usageLimit` / `summary` 分段映射到平铺设置键，并同时
+写入多套别名键保证两个编辑器兼容）。掩码 apiKey（`****` 开头）从已存配置恢复，不重复写入。
+
+保存失败返回 `500`（`群配置保存失败，请稍后重试`）；更新 `summaryPushEnabled` 会重载
+总结推送调度。
+
+## 黑白名单
 
 ```http
-PUT /api/group-admin/groups/:groupId/config
+GET    /api/group-admin/blacklist
+PUT    /api/group-admin/blacklist          # 请求体 { blacklist: [] }，非数组返回 400
+POST   /api/group-admin/blacklist/add      # 请求体 { userId }
+POST   /api/group-admin/blacklist/remove   # 请求体 { userId }
+
+GET    /api/group-admin/whitelist
+PUT    /api/group-admin/whitelist          # 请求体 { whitelist: [] }，非数组返回 400
 ```
 
-**请求体**
-
-```json
-{
-  "enabled": true,
-  "preset": "custom-preset",
-  "triggers": {
-    "prefix": ["#ai", "小助手"],
-    "at": true
-  }
-}
-```
-
-**响应示例**
-
-```json
-{
-  "success": true,
-  "data": {
-    "message": "配置已更新"
-  }
-}
-```
-
-### 重置群配置
-
-重置群配置为默认值。
+## 定时任务（已重构，占位）
 
 ```http
-DELETE /api/group-admin/groups/:groupId/config
+GET  /api/group-admin/scheduler/status
+POST /api/group-admin/scheduler/trigger
 ```
 
-**响应示例**
+两者均为占位实现：返回 `{ enabled: false, message: '定时任务模块已重构' }` /
+`{ success: false, message: '定时总结功能已重构，请使用新的自然语言定时任务' }`。
 
-```json
-{
-  "success": true,
-  "data": {
-    "message": "配置已重置"
-  }
-}
-```
-
-### 获取群成员列表
+## 模型获取
 
 ```http
-GET /api/group-admin/groups/:groupId/members
+POST /api/group-admin/models/fetch
 ```
 
-**查询参数**
+**请求体**：`{ adapterType, baseUrl, apiKey, modelsPath }`（`baseUrl`+`apiKey` 必填，
+缺失返回 `400`）。支持 `****` 掩码 Key 自动恢复；返回与
+`/api/channels/fetch-models` 一致的归一化模型列表。
 
-| 参数 | 类型 | 说明 |
-|:-----|:-----|:-----|
-| `page` | number | 页码，默认 1 |
-| `limit` | number | 每页数量，默认 50 |
-| `search` | string | 搜索关键词 |
-
-**响应示例**
-
-```json
-{
-  "success": true,
-  "data": {
-    "members": [
-      {
-        "userId": "111222333",
-        "nickname": "用户A",
-        "role": "member",
-        "blocked": false,
-        "lastActive": "2024-12-15T10:30:00Z"
-      }
-    ],
-    "total": 100,
-    "page": 1,
-    "limit": 50
-  }
-}
-```
-
-### 更新成员设置
+## 群独立渠道
 
 ```http
-PUT /api/group-admin/groups/:groupId/members/:userId
+GET    /api/group-admin/channel
+PUT    /api/group-admin/channel
+DELETE /api/group-admin/channel
 ```
 
-**请求体**
+GET 返回 `{ groupId, hasIndependentChannel, channelId, baseUrl, apiKey(掩码), adapterType, modelId }`
+（`forbidGlobal` 不返回）。PUT 请求体为 `{ baseUrl, apiKey, adapterType, modelId }`，
+`forbidGlobal` 保持现有值不允许修改。DELETE 清空渠道配置（`forbidGlobal` 保留）。
 
-```json
-{
-  "blocked": true,
-  "remark": "违规用户"
-}
-```
-
-### 获取群统计
+## 使用限制与统计
 
 ```http
-GET /api/group-admin/groups/:groupId/stats
+GET  /api/group-admin/usage-limit
+PUT  /api/group-admin/usage-limit       # { dailyGroupLimit, dailyUserLimit, limitMessage }
+
+GET  /api/group-admin/usage-stats
+POST /api/group-admin/usage-stats/reset
 ```
 
-**查询参数**
+GET usage-stats 返回 `{ groupId, date, groupCount, dailyGroupLimit, dailyUserLimit,
+groupRemaining, topUsers, totalUsers }`。
 
-| 参数 | 类型 | 说明 |
-|:-----|:-----|:-----|
-| `period` | string | 统计周期：`day`, `week`, `month` |
-
-**响应示例**
-
-```json
-{
-  "success": true,
-  "data": {
-    "totalMessages": 1500,
-    "aiResponses": 300,
-    "toolCalls": 50,
-    "activeUsers": 25,
-    "topUsers": [
-      { "userId": "111", "nickname": "用户A", "count": 50 }
-    ],
-    "dailyStats": [
-      { "date": "2024-12-15", "messages": 100, "responses": 20 }
-    ]
-  }
-}
-```
-
-### 获取群对话历史
+## 表情管理
 
 ```http
-GET /api/group-admin/groups/:groupId/conversations
-```
-
-**查询参数**
-
-| 参数 | 类型 | 说明 |
-|:-----|:-----|:-----|
-| `limit` | number | 数量限制 |
-| `before` | string | 时间戳，获取此时间之前的记录 |
-
-### 清除群对话历史
-
-```http
-DELETE /api/group-admin/groups/:groupId/conversations
-```
-
-### 获取群记忆
-
-```http
-GET /api/group-admin/groups/:groupId/memories
-```
-
-**查询参数**
-
-| 参数 | 类型 | 说明 |
-|:-----|:-----|:-----|
-| `category` | string | 记忆分类 |
-| `limit` | number | 数量限制 |
-
-### 批量操作
-
-#### 批量更新群配置
-
-```http
-POST /api/group-admin/groups/batch
-```
-
-**请求体**
-
-```json
-{
-  "groupIds": ["123456789", "987654321"],
-  "action": "update",
-  "config": {
-    "enabled": true
-  }
-}
-```
-
-#### 批量启用/禁用
-
-```http
-POST /api/group-admin/groups/batch/toggle
-```
-
-**请求体**
-
-```json
-{
-  "groupIds": ["123456789", "987654321"],
-  "enabled": true
-}
-```
-
-## 群预设管理
-
-### 获取群可用预设
-
-```http
-GET /api/group-admin/groups/:groupId/presets
-```
-
-### 设置群预设
-
-```http
-PUT /api/group-admin/groups/:groupId/preset
-```
-
-**请求体**
-
-```json
-{
-  "presetId": "custom-preset"
-}
-```
-
-## 群工具配置
-
-### 获取群工具设置
-
-```http
-GET /api/group-admin/groups/:groupId/tools
-```
-
-### 更新群工具设置
-
-```http
-PUT /api/group-admin/groups/:groupId/tools
-```
-
-**请求体**
-
-```json
-{
-  "enabled": true,
-  "allowedCategories": ["basic", "user", "web"],
-  "disabledTools": ["execute_command"],
-  "allowDangerous": false
-}
-```
-
-## 群触发配置
-
-### 获取触发设置
-
-```http
-GET /api/group-admin/groups/:groupId/triggers
-```
-
-### 更新触发设置
-
-```http
-PUT /api/group-admin/groups/:groupId/triggers
-```
-
-**请求体**
-
-```json
-{
-  "prefix": ["#ai", "小助手"],
-  "at": true,
-  "random": 0.05,
-  "keywords": ["帮我", "请问"]
-}
+GET    /api/group-admin/emoji/view      # 查询参数 file（缺失 400），直接返回图片流
+DELETE /api/group-admin/emoji/delete    # 查询参数 file（缺失 400），删除单个表情
+DELETE /api/group-admin/emoji/clear     # 清空群表情目录
 ```
 
 ## 错误响应
 
-```json
-{
-  "success": false,
-  "error": "群组不存在或无权限访问",
-  "code": "GROUP_NOT_FOUND"
-}
-```
+响应统一为 `ChaiteResponse`（`{ code, data, message }`）。典型错误：
 
-### 错误码
-
-| 错误码 | 说明 |
-|:-------|:-----|
-| `GROUP_NOT_FOUND` | 群组不存在 |
-| `NO_PERMISSION` | 无管理权限 |
-| `INVALID_CONFIG` | 配置格式错误 |
-| `USER_NOT_FOUND` | 用户不存在 |
-
-## 代码示例
-
-### JavaScript
-
-```javascript
-// 获取群配置
-const response = await fetch('/api/group-admin/groups/123456789/config', {
-  headers: {
-    'Authorization': `Bearer ${token}`
-  }
-})
-const { data } = await response.json()
-
-// 更新群配置
-await fetch('/api/group-admin/groups/123456789/config', {
-  method: 'PUT',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`
-  },
-  body: JSON.stringify({
-    preset: 'new-preset',
-    triggers: { at: true }
-  })
-})
-```
-
-## 下一步
-
-- [预设接口](./presets) - 预设管理 API
-- [配置接口](./config) - 全局配置 API
+- `401` `需要群管理员认证` / `会话无效或已过期，请重新登录`
+- `400` 参数校验失败（`请输入登录码` / `blacklist必须是数组` 等）
+- `429` `登录尝试过于频繁，请稍后再试`

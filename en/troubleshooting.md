@@ -16,9 +16,17 @@ Use `Ctrl+F` to search for error keywords, or browse by category.
 
 **Solution Steps:**
 
-**Step 1** - Rebuild in Yunzai root directory
+**Step 1** - Run the pnpm lifecycle script (recommended)
+
+Run in the **Yunzai root directory**:
 ```bash
-pnpm rebuild better-sqlite3
+pnpm approve-builds
+```
+
+After running the lifecycle script, delete the dependencies and lockfile and reinstall:
+```bash
+rm -rf node_modules pnpm-lock.yaml
+pnpm install
 ```
 
 **Step 2** - If still failing, install build tools
@@ -28,7 +36,6 @@ pnpm rebuild better-sqlite3
 # Install Visual Studio Build Tools
 # Download: https://visualstudio.microsoft.com/visual-cpp-build-tools/
 # Select "Desktop development with C++" during installation
-npm install -g windows-build-tools
 ```
 
 ```bash [Linux (Debian/Ubuntu)]
@@ -46,11 +53,17 @@ xcode-select --install
 ```
 :::
 
-**Step 3** - Clean reinstall
+**Step 3** - Enter the dependency directory and build manually
 ```bash
-rm -rf node_modules
-pnpm install
-pnpm rebuild better-sqlite3
+# Locate the better-sqlite3 directory (the path may differ depending on the package manager)
+cd node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3
+# or
+cd node_modules/better-sqlite3
+
+# Run the build script
+npm run build-release
+# Or build directly with node-gyp
+npx node-gyp rebuild
 ```
 
 ::: details Other Possible Solutions
@@ -120,7 +133,6 @@ No `[ChatAI]` logs in console, or `Cannot find module` error
 
 | Check Item | Description | Fix |
 |:-----------|:------------|:----|
-| Directory name | Must be `plugins/chatgpt-plugin` | Rename directory |
 | Entry file | `index.js` must exist | Re-clone plugin |
 | Dependencies | Dependencies must be complete | Run `pnpm install` |
 | Console logs | Check detailed error messages | Fix based on error |
@@ -181,14 +193,16 @@ web:
 **Solution Steps:**
 
 ```bash
-# 1. Rebuild better-sqlite3
-pnpm rebuild better-sqlite3
+# 1. Run the lifecycle script and reinstall dependencies
+pnpm approve-builds
+rm -rf node_modules pnpm-lock.yaml
+pnpm install
 
 # 2. Check directory permissions (Linux/macOS)
 chmod 755 plugins/chatgpt-plugin/data
 
-# 3. Delete database file and rebuild (will lose data!)
-rm plugins/chatgpt-plugin/data/chatai.db
+# 3. Delete database files and rebuild (will lose data!)
+rm plugins/chatgpt-plugin/data/*.db
 ```
 
 ::: warning Data Backup
@@ -533,6 +547,53 @@ grep -i "error\|fail" logs/latest.log
 | `ECONNREFUSED` | Connection Refused | Check network and proxy config |
 | `ETIMEDOUT` | Connection Timeout | Check network or increase timeout |
 
+## Standard Troubleshooting Flow {#troubleshoot-flow}
+
+```mermaid
+flowchart TD
+    A["Anomaly Detected"] --> B["Collect Information<br/>- Log Snippets<br/>- Config Screenshots<br/>- Reproduction Steps"]
+    B --> C["Initial Diagnosis<br/>- Port/Network<br/>- Config Validity<br/>- Permissions & Quota"]
+    C --> D{"Self-healable?"}
+    D --> |Yes| E["Apply Fixes<br/>- Rebuild better-sqlite3<br/>- Fix Config/Permissions<br/>- Clean Cache/Data"]
+    D --> |No| F["Deep Diagnosis<br/>- Enable Debug<br/>- Check Proxy/Auth<br/>- Analyze Stats & Telemetry"]
+    E --> G["Verify Recovery"]
+    F --> G
+    G --> H["Record & Review<br/>- Update FAQ<br/>- Preventive Maintenance Tips"]
+```
+
+## Preventive Maintenance {#preventive-maintenance}
+
+### Periodic Maintenance Tips {#maintenance-tips}
+
+| Item | Frequency | Description |
+|:-----|:----------|:------------|
+| **Back up data** | Weekly | Back up the `data/` directory (config.yaml, databases, presets) |
+| **Check logs** | Daily | Watch for errors and warnings |
+| **Clean cache** | Monthly | Clean expired sessions and cached data |
+| **Update plugin** | On demand | Watch for version updates and upgrade promptly |
+
+### Metrics to Monitor {#monitoring}
+
+::: tip Recommended Metrics
+- **Real-time RPM**: requests per 1/5 minutes
+- **API success rate**: ratio of successful calls
+- **Token usage**: token consumption trend
+- **Tool call error rate**: ratio of abnormal tool executions
+- **Database size**: storage growth trend
+:::
+
+### Post-update Maintenance {#post-update}
+
+```bash
+# Run after updating the plugin
+cd plugins/chatgpt-plugin
+git pull
+pnpm install
+pnpm approve-builds  # If native modules are involved
+rm -rf node_modules pnpm-lock.yaml
+pnpm install
+```
+
 ## Get Help {#get-help}
 
 ::: tip 🆘 Get Support
@@ -542,4 +603,3 @@ grep -i "error\|fail" logs/latest.log
 |:--------|:-----|:---------|
 | **GitHub Issues** | [Submit Issue](https://github.com/XxxXTeam/chatai-plugin/issues) | Bug reports, feature requests |
 | **Documentation** | [View Docs](/) | Configuration and usage questions |
-| **QQ Group** | See project README | Discussion and chat |

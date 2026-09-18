@@ -1,129 +1,52 @@
 # MCP 配置
 
-MCP (Model Context Protocol) 是标准化的工具调用协议，本文档说明 MCP 相关配置。
+MCP (Model Context Protocol) 是标准化的工具调用协议，本文对照 config 默认配置（`config/config.js` 的 `getDefaultConfig()`，对应提交 `5351e7d7`）的 `mcp` 段与 `builtinTools` 段编写。
 
-## 基础配置
+## mcp 基础配置
 
 ```yaml
 mcp:
-  # 启用 MCP
-  enabled: true
-  
-  # 并行执行工具
-  parallelExecution: true
-  
-  # 工具超时（毫秒）
-  timeout: 30000
+  enabled: true   # 启用 MCP
+  timeouts:       # MCP 超时配置（毫秒），单个服务器配置中的 timeouts 字段可覆盖全局值
+    connect: 30000      # 连接超时
+    request: 1800000    # 请求超时：30 分钟（image_create 等长耗时工具）
+    sseConnect: 15000   # SSE 连接超时
+    sseEndpoint: 2000   # SSE endpoint 等待超时
+    startup: 5000       # 进程启动超时
+    ping: 5000          # ping 超时
+    heartbeat: 30000    # 心跳间隔
+    terminate: 3000     # 进程强制终止超时
 ```
 
-## 内置工具配置
+| 字段 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `mcp.enabled` | boolean | `true` | 启用 MCP |
+| `mcp.timeouts.connect` | number | `30000` | 连接超时（毫秒） |
+| `mcp.timeouts.request` | number | `1800000` | 请求超时（毫秒，默认 30 分钟） |
+| `mcp.timeouts.sseConnect` | number | `15000` | SSE 连接超时（毫秒） |
+| `mcp.timeouts.sseEndpoint` | number | `2000` | SSE endpoint 等待超时（毫秒） |
+| `mcp.timeouts.startup` | number | `5000` | 进程启动超时（毫秒） |
+| `mcp.timeouts.ping` | number | `5000` | ping 超时（毫秒） |
+| `mcp.timeouts.heartbeat` | number | `30000` | 心跳间隔（毫秒） |
+| `mcp.timeouts.terminate` | number | `3000` | 进程强制终止超时（毫秒） |
 
-```yaml
-builtinTools:
-  # 启用的类别
-  enabledCategories:
-    - basic
-    - user
-    - group
-    - message
-    - media
-    - web
-    
-  # 禁用的工具
-  disabledTools: []
-```
-
-### 工具类别（22个）
-
-完整类别列表详见 [内置工具](/tools/builtin)，常用类别如下：
-
-| 类别 | 说明 | 类别 | 说明 |
-|------|------|------|------|
-| `basic` | 基础工具 | `admin` | 群管理 |
-| `user` | 用户信息 | `groupStats` | 群统计 |
-| `group` | 群组信息 | `file` | 文件操作 |
-| `message` | 消息操作 | `search` | 搜索工具 |
-| `media` | 媒体处理 | `utils` | 实用工具 |
-| `web` | 网页访问 | `bot` | Bot信息 |
-| `memory` | 记忆管理 | `voice` | 语音/声聊 |
-| `context` | 上下文管理 | `extra` | 扩展工具 |
-| `shell` | 系统命令⚠️ | `schedule` | 定时任务 |
-| `bltools` | 扩展工具集 | `reminder` | 定时提醒 |
-| `imageGen` | 绘图服务 | `qzone` | QQ空间 |
+::: danger 历史页面更正
+本页旧版书写的 `mcp.parallelExecution` / `mcp.timeout` / `mcp.security` / `mcp.permissions` / `mcp.logging` / `mcp.cache` 在默认配置中均不存在，已删除。并行工具执行的真实配置是 `tools.parallelExecution`（见 [功能配置](./features)）。外部 MCP 服务器列表不是 `config.yaml` 内容，而是 `data/mcp-servers.json` 文件（`src/mcp/McpManager.js` 中 `MCP_SERVERS_FILE` 常量指向该路径）。
+:::
 
 ## 外部 MCP 服务器
 
-配置文件：`data/mcp-servers.json`
-
-```json
-{
-  "servers": {
-    "filesystem": {
-      "type": "npm",
-      "package": "@anthropic/mcp-server-filesystem",
-      "args": ["/home/user/docs"]
-    }
-  }
-}
-```
-
-### 服务器类型
-
-#### npm
-
-```json
-{
-  "type": "npm",
-  "package": "@anthropic/mcp-server-filesystem",
-  "args": ["/path"]
-}
-```
-
-#### stdio
-
-```json
-{
-  "type": "stdio",
-  "command": "python",
-  "args": ["server.py"],
-  "env": {
-    "DEBUG": "1"
-  }
-}
-```
-
-#### sse
-
-```json
-{
-  "type": "sse",
-  "url": "https://mcp.example.com/sse",
-  "headers": {
-    "Authorization": "Bearer xxx"
-  }
-}
-```
-
-#### http
-
-```json
-{
-  "type": "http",
-  "url": "https://api.example.com/mcp"
-}
-```
+配置文件：`data/mcp-servers.json`（`McpManager` 加载源）。该文件结构由管理器读写，页面示例以实际文件为准，此处不再贴出虚构的 `servers` 键结构。接入方式建议通过管理面板的「MCP 服务」页操作。
 
 ## MCP 服务端暴露模式
 
-除了作为 MCP **客户端**接入外部服务器，本插件还可作为 MCP **服务端**，将内置工具以标准 MCP 协议通过 HTTP 暴露给外部 MCP 客户端（如 Claude Desktop、Cline 等），由 `src/services/routes/mcpServerRoutes.js` 实现。
+除了作为 MCP **客户端**接入外部服务器，本插件还可作为 MCP **服务端**，将内置工具以标准 MCP 协议通过 HTTP 暴露给外部 MCP 客户端（如 Claude Desktop、Cline 等），由 `src/services/routes/mcpServerRoutes.js` 实现。默认配置：
 
 ```yaml
 mcp:
   server:
-    # 是否启用 MCP 服务端暴露
-    enabled: true
-    # Bearer Token 鉴权密钥（启用时必填，可自动生成）
-    apiKey: "mcp-xxxxxxxxxxxxxxxxxxxxxxxx"
+    enabled: false   # 是否启用 MCP Server 暴露（默认关闭）
+    apiKey: ''       # Bearer Token 鉴权密钥，留空则无法访问
 ```
 
 ### 配置参数
@@ -131,13 +54,13 @@ mcp:
 | 参数 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
 | `mcp.server.enabled` | boolean | `false` | 是否对外暴露内置工具，需显式设为 `true` 才可访问 |
-| `mcp.server.apiKey` | string | `""` | Bearer Token 鉴权密钥，用于校验客户端请求 |
+| `mcp.server.apiKey` | string | `''` | Bearer Token 鉴权密钥，用于校验客户端请求 |
 
 ::: tip API Key 自动生成
-在管理面板中开启 MCP Server，或调用后端接口 `POST /config/mcp-server/generate-key` 时，若未配置 `apiKey`，系统会自动生成形如 `mcp-<48位十六进制>` 的密钥并同时启用服务端。
+在管理面板中开启 MCP Server，或调用后端接口生成密钥时，系统会自动生成形如 `mcp-<48位十六进制>` 的密钥并同时启用服务端。
 :::
 
-### 访问端点
+### 访问端点 {#server-endpoints}
 
 服务端路由挂载于插件 Web 服务的 `<mountPath>/mcp`（默认 `mountPath` 为 `/chatai`，即端点为 `/chatai/mcp`），支持两种传输模式：
 
@@ -171,121 +94,95 @@ Authorization: Bearer mcp-xxxxxxxxxxxxxxxxxxxxxxxx
   - 非必要时保持 `mcp.server.enabled: false`，仅在需要对外集成时临时开启。
   - 建议仅在内网或经反向代理加鉴权的环境下暴露该端点。
 
-## 安全配置
+## 内置工具配置 builtinTools
+
+`builtinTools` 是独立的顶层段（不在 `mcp` 下），默认配置：
 
 ```yaml
-mcp:
-  security:
-    # 允许危险工具
-    allowDangerous: false
-    
-    # 危险工具列表
-    dangerousTools:
-      - execute_command
-      - delete_file
-      - write_file
-    
-    # 需要管理员权限的工具
-    adminOnlyTools:
-      - kick_member
-      - ban_member
+builtinTools:
+  enabled: true            # 启用内置工具
+  allowedTools: []         # 允许的工具列表，空数组表示允许所有
+  disabledTools: []        # 禁用的工具列表
+  dangerousTools:          # 危险工具需要确认
+    - kick_member
+    - mute_member
+    - recall_message
+    - mute_all
+    - set_group_admin
+    - set_group_card
+    - set_group_title
+    - set_group_name
+    - send_group_notice
+    - delete_group_notice
+    - write_file
+    - delete_file
+    - move_file
+    - copy_file
+    - create_directory
+    - execute_command
+  dangerousToolsExcluded: []   # 用户显式豁免的工具
+  allowDangerous: false        # 是否允许危险操作
+  approvalMode: 'auto'         # 审批模式
+  approvalTimeoutMs: 60000
+  approvalLowRiskTools: []
+  approvalMediumRiskTools: []
+  approvalHighRiskTools: []
+  approvalBypassTools: []
+  approvalAllowSessionBypass: true
+  approvalSessionBypassMaxRisk: 'medium'
 ```
 
-## 权限配置
+| 字段 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `enabled` | boolean | `true` | 启用内置工具 |
+| `allowedTools` | array | `[]` | 允许的工具列表，空数组表示允许所有 |
+| `disabledTools` | array | `[]` | 禁用的工具列表 |
+| `dangerousTools` | array | 见上方 16 项 | 危险工具需要确认 |
+| `dangerousToolsExcluded` | array | `[]` | 用户显式豁免：最终生效名单 = （内置默认 ∪ `dangerousTools`）− `dangerousToolsExcluded` |
+| `allowDangerous` | boolean | `false` | 是否允许危险操作 |
+| `approvalMode` | string | `'auto'` | 审批模式；`ToolApprovalService` 合法值为 `'ask'` / `'auto'` / `'confirm_all'` / `'yolo'`，非法值归一为 `'auto'` |
+| `approvalTimeoutMs` | number | `60000` | 审批超时（毫秒） |
+| `approvalLowRiskTools` | array | `[]` | 低风险审批工具列表 |
+| `approvalMediumRiskTools` | array | `[]` | 中风险审批工具列表 |
+| `approvalHighRiskTools` | array | `[]` | 高风险审批工具列表 |
+| `approvalBypassTools` | array | `[]` | 绕过审批的工具列表 |
+| `approvalAllowSessionBypass` | boolean | `true` | 允许会话级豁免（`!== false` 判断） |
+| `approvalSessionBypassMaxRisk` | string | `'medium'` | 会话豁免允许的最高风险级（`'low'` / `'medium'` / `'high'`，非法值归一为 `'medium'`） |
 
-```yaml
-mcp:
-  permissions:
-    # 默认权限
-    default: allow
-    
-    # 工具权限映射
-    tools:
-      send_group_message:
-        require: member
-      recall_message:
-        require: admin
-```
-
-## 日志配置
-
-```yaml
-mcp:
-  logging:
-    # 记录工具调用
-    enabled: true
-    
-    # 日志级别
-    level: info
-    
-    # 保留天数
-    retention: 7
-```
-
-## 缓存配置
-
-```yaml
-mcp:
-  cache:
-    # 启用缓存
-    enabled: true
-    
-    # 缓存 TTL（秒）
-    ttl: 300
-    
-    # 可缓存的工具
-    tools:
-      - get_weather
-      - web_search
-```
+::: warning 关于 enabledCategories
+`config.yaml` 实例中出现过 `builtinTools.enabledCategories` 列表，该项**不在默认配置中**。工具类别启用逻辑现由 `data/skills.yaml` 的 `skills.sources.builtin.categories` / `getEnabledCategories()` 承载（`src/services/skills/SkillsConfig.js`、`SkillsLoader.js`），类别管理请在面板的「内置工具」页操作。
+:::
 
 ## 完整示例
 
 ```yaml
 mcp:
   enabled: true
-  parallelExecution: true
-  timeout: 30000
-  
-  security:
-    allowDangerous: false
-    dangerousTools:
-      - execute_command
-      - delete_file
-    adminOnlyTools:
-      - kick_member
-      
-  logging:
-    enabled: true
-    level: info
-    retention: 7
-    
-  cache:
-    enabled: true
-    ttl: 300
+  timeouts:
+    connect: 30000
+    request: 1800000
+    sseConnect: 15000
+    sseEndpoint: 2000
+    startup: 5000
+    ping: 5000
+    heartbeat: 30000
+    terminate: 3000
+  server:
+    enabled: false
+    apiKey: ""
 
 builtinTools:
-  enabledCategories:
-    - basic
-    - user
-    - web
+  enabled: true
+  allowedTools: []
   disabledTools: []
-```
-
-## 管理命令
-
-```bash
-# 查看工具列表
-#工具列表
-
-# 重载工具
-#重载工具
-
-# 查看工具日志
-#工具日志
+  dangerousToolsExcluded: []
+  allowDangerous: false
+  approvalMode: auto
+  approvalTimeoutMs: 60000
 ```
 
 ## 下一步
 
 - [代理配置](./proxy) - 网络代理设置
-- [工具开发](/tools/) - 开发自定义工具
+- [工具组配置](./tool-groups) - 工具组与调度
+- [功能配置](./features) - tools 并行执行等工具调用配置

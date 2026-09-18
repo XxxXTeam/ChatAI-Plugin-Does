@@ -1,6 +1,6 @@
 # API Overview <Badge type="tip" text="REST API" />
 
-ChatAI Plugin provides **REST API** for management and extension, supporting Web panel and third-party integration.
+ChatAI Plugin provides **REST API** for management and extension, supporting the Web panel and third-party integration.
 
 ## Basic Information {#basic-info}
 
@@ -38,22 +38,29 @@ Each module provides a set of related API endpoints that can be used independent
 | Module | Path | Description | Docs |
 |:-------|:-----|:------------|:----:|
 | **Auth** | `/api/auth` | Login, verification, Token management | [View](./auth) |
-| **Config** | `/api/config` | Configuration read/update | [View](./config) |
-| **Channels** | `/api/channels` | Channel CRUD, testing, model list | - |
-| **Conversations** | `/api/conversations` | Conversation history management | - |
-| **Presets** | `/api/presets` | Preset CRUD | - |
-| **Tools** | `/api/tools` | Tool management and logs | [View](./tools) |
-| **MCP** | `/api/mcp` | MCP server management | [View](./mcp) |
-| **Skills** | `/api/skills` | Skills agent interface | - |
-| **Group Admin** | `/api/group-admin` | Group-specific configuration | - |
-| **System** | `/api/system` | System status and statistics | - |
+| **Config** | `/api/config` | Config read/update, channel management, group config | [View](./config) |
+| **Conversations** | `/api/conversations` | Conversation history view and cleanup | [View](./chat) |
+| **Presets** | `/api/presets` | Preset CRUD, preset file management | [View](./presets) |
+| **Tools** | `/api/tools` | Tool management, execution, logs, dangerous tool config | [View](./tools) |
+| **MCP** | `/api/mcp` | MCP server connection, management, SSE status push | [View](./mcp) |
+| **Skills** | `/api/skills` | Skills Agent endpoints, tool categories, global switch, SSE | [View](./skills) |
+| **Group Admin** | `/api/group-admin` | Per-group configuration, group admin login | [View](./groups) |
+| **System** | `/api/system` | Health checks, version info, statistics | [View](./stats) |
+| **Memory** | `/api/memory` | Structured user memory management, categories, statistics | [View](./memories) |
+| **Knowledge Base** | `/api/knowledge` | Knowledge base document CRUD, search | [View](./knowledge) |
+| **Knowledge Graph** | `/api/graph` | Entity/relationship/property CRUD, visualization data | [View](./graph) |
+| **Image** | `/api/image` | Drawing preset management, remote preset caching | [View](./image) |
+| **Game** | `/api/game` | Galgame character preset management | [View](./game) |
+| **Logs** | `/api/logs` | Log file listing, error log viewing | [View](./logs) |
+| **Proxy** | `/api/proxy` | Network proxy configuration management | [View](./proxy-api) |
+| **Scope** | `/api/scope` | User/group level independent config management | [View](./scope) |
 
 ## Authentication {#authentication}
 
 ### Get Login Link {#get-login-link}
 
 ::: tip How to Get
-Send `#ai管理面板` to bot for temporary login link, or `#ai管理面板 永久` for permanent link.
+Send `#ai管理面板` to the bot for a temporary login link, or `#ai管理面板 永久` for a permanent link.
 :::
 
 ### Login Flow {#login-flow}
@@ -128,7 +135,7 @@ curl http://localhost:3000/api/config \
 ::: warning Rate Limit Rules
 - **Window**: 60 seconds
 - **Max Requests**: 60 requests
-- Exceeding limit returns `429` status code
+- Exceeding the limit returns a `429` status code
 :::
 
 ## SSE Endpoints {#sse}
@@ -152,8 +159,17 @@ eventSource.onerror = (error) => {
 
 | Document | Description | Main Endpoints |
 |:---------|:------------|:---------------|
-| [Authentication](./auth) | Login & verification | `POST /auth/login`, `GET /auth/verify` |
-| [Configuration](./config) | Config management | `GET /config`, `PUT /config` |
-| [Tools](./tools) | Tool management | `GET /tools`, `POST /tools/call` |
-| [MCP](./mcp) | MCP servers | `GET /mcp/servers`, `POST /mcp/connect` |
-| [Chat](./chat) | Chat functionality | `POST /chat`, `GET /conversations` |
+| [Authentication](./auth) | Login & verification | `POST /auth/verify`, `POST /auth/logout` |
+| [Configuration](./config) | Config & channel management | `GET /config`, `PUT /config`, `POST /config/channels` |
+| [Chat](./chat) | Conversations & memory | `POST /chat`, `GET /chat/history` |
+| [Tools](./tools) | Tool management | `GET /tools`, `POST /tools/:name/execute` |
+| [Skills](./skills) | Skills Agent | `GET /skills/categories`, `POST /skills/toggle-category` |
+| [MCP](./mcp) | MCP servers | `GET /mcp/servers`, `POST /mcp/servers/:name/connect` |
+| [Memory](./memories) | User memories | `GET /memories/users`, `POST /memories/user/:userId` |
+| [Knowledge Base](./knowledge) | Knowledge documents | `GET /knowledge`, `GET /knowledge/search` |
+| [Knowledge Graph](./graph) | Entities & relationships | `GET /graph/entities`, `POST /graph/relationships` |
+| [Image](./image) | Drawing presets | `GET /image/presets`, `PUT /image/config` |
+| [Game](./game) | Galgame | `GET /game/presets`, `POST /game/presets` |
+| [Logs](./logs) | Log viewing | `GET /logs`, `GET /logs/recent` |
+| [Proxy](./proxy-api) | Network proxy | `GET /proxy`, `PUT /proxy/scopes/:scope` |
+| [Scope](./scope) | Granular config | `GET /scope/users`, `PUT /scope/group/:groupId` |

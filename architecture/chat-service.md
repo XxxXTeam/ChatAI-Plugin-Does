@@ -88,15 +88,39 @@
 3. 若 `notifyUser !== false` 且存在 `event.reply`，回复「历史对话已自动清理」
 4. 最终 `throw error` 继续上抛
 
+## 旁路调用助手：LlmDelegate
+
+`src/services/llm/LlmDelegate.js` 为记忆、知识图谱、总结等**绕过 ChatService** 直接
+调用适配器的子模块提供统一契约（`callWithChannelDelegate(message, options)`）：
+
+- **渠道选择**：`resolveDelegateCandidates` 优先群独立渠道（含 `groupId` 时），
+  其次指定模型的最佳渠道，最后是所有已启用且带 apiKey 的渠道（去重）。
+- **流式遵循**：`resolveChannelStream(channel, explicitStream)`——显式指定时以参数
+  为准，否则跟随渠道 `advanced.streaming.enabled`。
+- **失败重试**：错误分类（`RETRYABLE_ERROR_SAMPLES`：auth/quota/timeout/network/
+  server 五类）→ `channelManager.reportError` 上报冷却 → 指数退避
+  （`retryDelay * 2^attempt`，封顶 10s）→ 切换同模型其他渠道；`llm.fallback`
+  的 `maxRetries`（默认 3）/`retryDelay`（默认 500ms）/`enableChannelSwitch`
+  控制整体行为，全部失败后抛出。
+- **返回**：`{ response, model, channel, stream, tries }` 渠道元信息供调用方回填统计。
+- 纯函数式组合、无单例状态。
+
 ## ErrorNotifier 集成
 
-错误通知由 `errorNotifier`（`src/services/ErrorNotifier.js`）单例提供，在 `apps/chat.js` 的错误处理链路中调用 `errorNotifier.notify(error, { e, userId, groupId, model })`：
+错误通知由 `errorNotifier`（`src/services/ErrorNotifier.js`）单例提供，在
+`apps/chat.js` 的错误处理链路中调用 `errorNotifier.notify(error, { e, userId, groupId, model })`：
 
-- **通知目标**：支持 `group`（群聊）与 `master`（私聊主人，主人来源为 `admin.masterQQ` 及 Bot 配置的 master）两类
-- **冷却去重**：内部 `cooldownMap` 按错误类型键控，`_checkCooldown` 在冷却期（默认 60 秒）内跳过重复通知
-- **错误类型提取**：从错误消息中归一化出 `errorType` 作为去重键
+- **错误分类**：`classifyError` 从错误消息提取类型键：`rate_limit` / `auth` /
+  `model_not_found` / `billing` / `timeout` / `network` / `content_filter` /
+  `unknown`。
+- **通知目标**：支持 `group`（群聊）与 `master`（私聊主人，主人来源为
+  `admin.masterQQ` 及 Bot 配置的 master，保留协议端原始标识，QQBot OpenID 不转数字）。
+- **冷却去重**：内部 `cooldownMap` 按错误类型键控，`_checkCooldown` 在冷却期
+  （默认 60 秒）内跳过重复通知。
+- **错误类型提取**：从错误消息中归一化出 `errorType` 作为去重键。
 
-> 说明：ChatService 本身的错误上报走 `channelManager.reportError`（渠道级降级）与 `statsService.recordApiCall`（统计），ErrorNotifier 由 `apps/chat.js` 层集成。
+> 说明：ChatService 本身的错误上报走 `channelManager.reportError`（渠道级降级）与
+> `statsService.recordApiCall`（统计），ErrorNotifier 由 `apps/chat.js` 层集成。
 
 ## Debug 信息保留
 
@@ -106,3 +130,4 @@
 
 - [Web 服务](./web-server) - HTTP API 服务
 - [存储系统](./storage) - 数据持久化
+- [渲染服务](./canvas-renderer) - Markdown/公式转图片

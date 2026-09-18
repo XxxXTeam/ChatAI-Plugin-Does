@@ -1,6 +1,6 @@
 # 工具组配置
 
-工具组（Tool Groups）将内置工具按用途分组，供**工具调度器**按需选取，避免一次性把全部工具塞给模型。由 `src/services/tools/ToolGroupManager.js` 管理。
+工具组（Tool Groups）将内置工具按用途分组，供**工具调度器**按需选取，避免一次性把全部工具塞给模型。由 `src/services/tools/ToolGroupManager.js` 管理。本文对照 config 默认配置（`config/config.js` 的 `getDefaultConfig()`，对应提交 `5351e7d7`）与 `data/skills.yaml` 编写。
 
 ## 加载来源与优先级
 

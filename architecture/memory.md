@@ -4,21 +4,38 @@
 
 ::: tip 📚 相关文档
 - **用户指南**: [记忆系统指南](/guide/memory) - 如何使用记忆功能
+- **API**: [记忆接口](/api/memories) - `/api/memory` 端点
 - **配置参考**: [记忆配置](/config/memory) - 配置选项详解
 :::
+
+## 组件地图（与源码一致）
+
+| 组件 | 文件 | 职责 |
+|:-----|:-----|:-----|
+| `MemoryService` | `src/services/memory/MemoryService.js` | `structured_memories` 表 CRUD、分类、搜索、合并；`/api/memory` 路由的数据层 |
+| `MemoryExtractor` | `src/services/memory/MemoryExtractor.js` | 从对话自动提取结构化记忆 |
+| `MemorySummarizer` | `src/services/memory/MemorySummarizer.js` | AI 总结（`memorySummarizer` 单例；输出 `[分类] 内容` 行） |
+| `MemoryTypes` | `src/services/memory/MemoryTypes.js` | 分类/子类型常量与中文标签映射 |
+| `MemoryManager` | `src/services/storage/MemoryManager.js` | **轮询分析**（`memory.pollInterval`，默认 5 分钟）与游标管理、群聊上下文采集；`memoryManager` 单例 |
+| `llmHelper` | `src/services/memory/llmHelper.js` | 旁路 LLM 调用（经 `LlmDelegate`） |
+| `migration` | `src/services/memory/migration.js` | 旧格式迁移 |
+
+> 注意：`/api/memory` 直接使用 `memoryService`；后台轮询整理走 `memoryManager`，
+> 两者共享 `structured_memories` 表但入口不同。
 
 ## 架构概览 {#overview}
 
 ```mermaid
 graph TB
-    subgraph "记忆提取"
+    subgraph "提取与整理"
         ME["MemoryExtractor"]
         MS["MemorySummarizer"]
+        MM["MemoryManager<br/>轮询 + 游标"]
     end
     
     subgraph "记忆存储"
         MSV["MemoryService"]
-        DB["SQLite Database"]
+        DB["SQLite: structured_memories"]
     end
     
     subgraph "记忆类型"
@@ -28,10 +45,30 @@ graph TB
     Chat["对话消息"] --> ME
     ME -->|结构化记忆| MSV
     MS -->|摘要记忆| MSV
+    MM -->|周期性分析/总结| MSV
+    Chat --> MM
     MSV --> DB
     MT --> MSV
     MSV -->|记忆检索| Chat
 ```
+
+## MemoryManager 轮询与游标
+
+`MemoryManager.pollAndSummarize()` 由 `startPolling()` 周期触发
+（`memory.enabled` 为 true 时启动）：
+
+- **周期**：`memory.pollInterval`（分钟，默认 5）；单目标最小间隔
+  `memory.minPollInterval`（分钟，默认 30）。
+- **双轨游标**：`_resolvePollCursor(pollKey)` 取「内存 Map（`lastPollTime`）」与
+  「`kv_store` 持久化值（键前缀 `memory:poll:last:`）」的较大者；进程重启后内存游标
+  丢失，由 KV 游标兜底，碰撞窗口内的对话会重新处理一遍，避免漏分析。
+- **目标标识（pollKey）**：私聊为 `userId`；共享群为 `group:<gid>:user:<uid>`。
+- **共享群归属**：只信任落库消息的 `sender.user_id`（旧记录无 sender 跳过），
+  按发送者去重，避免把整个群的对话都记到同一用户头上。
+- **限幅**：`lastPollTime` / `lastSummarizeTime` Map 上限 5000 条、过期 7 天
+  （`_capTimeMap`）；单次轮询处理上限 100 个目标。
+- 群聊上下文采集由 `startGroupContextCollection()` 独立驱动
+  （`memory.groupContext.enabled`、`collectInterval` 默认 10 分钟）。
 
 ## 核心组件
 
@@ -129,24 +166,33 @@ getSubTypeLabel('name')      // '姓名'
 
 ### 数据库表结构
 
+实际建表语句（`src/services/storage/DatabaseService.js`）：
+
 ```sql
-CREATE TABLE structured_memories (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id TEXT NOT NULL,
-  group_id TEXT,
-  category TEXT NOT NULL,
-  sub_type TEXT,
-  content TEXT NOT NULL,
-  confidence REAL DEFAULT 0.8,
-  source TEXT DEFAULT 'auto',
-  metadata TEXT,
-  created_at INTEGER NOT NULL,
-  updated_at INTEGER NOT NULL
+CREATE TABLE IF NOT EXISTS structured_memories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT NOT NULL,
+    group_id TEXT,
+    category TEXT NOT NULL,
+    sub_type TEXT,
+    content TEXT NOT NULL,
+    confidence REAL DEFAULT 0.8,
+    source TEXT DEFAULT 'auto',
+    metadata TEXT,
+    created_at INTEGER DEFAULT (strftime('%s','now') * 1000),
+    updated_at INTEGER DEFAULT (strftime('%s','now') * 1000),
+    expires_at INTEGER,
+    is_active INTEGER DEFAULT 1
 );
 
-CREATE INDEX idx_memories_user ON structured_memories(user_id);
-CREATE INDEX idx_memories_category ON structured_memories(category);
+CREATE INDEX IF NOT EXISTS idx_struct_mem_user ON structured_memories(user_id);
+CREATE INDEX IF NOT EXISTS idx_struct_mem_group ON structured_memories(group_id);
+CREATE INDEX IF NOT EXISTS idx_struct_mem_category ON structured_memories(category);
+CREATE INDEX IF NOT EXISTS idx_struct_mem_user_group ON structured_memories(user_id, group_id);
+CREATE INDEX IF NOT EXISTS idx_struct_mem_active ON structured_memories(is_active);
 ```
+
+（旧版记忆表 `memories` 仍存在，`MemoryService` 在初始化时会做一次迁移合并。）
 
 ### 记忆对象结构
 
@@ -163,6 +209,8 @@ interface Memory {
   metadata?: object     // 额外元数据
   createdAt: number     // 创建时间戳
   updatedAt: number     // 更新时间戳
+  expiresAt?: number    // 过期时间戳
+  isActive: number      // 软删除标记（1 活跃）
 }
 ```
 
@@ -323,25 +371,33 @@ await migrateMemories(userId)
 
 ## API 接口
 
-### REST API
+### REST API（实际端点，见[记忆接口](/api/memories)）
 
 | 接口 | 方法 | 说明 |
 |:-----|:-----|:-----|
-| `/api/memory/:userId` | GET | 获取用户记忆 |
-| `/api/memory/:userId` | POST | 添加记忆 |
-| `/api/memory/:userId/:id` | PUT | 更新记忆 |
-| `/api/memory/:userId/:id` | DELETE | 删除记忆 |
-| `/api/memory/:userId/search` | GET | 搜索记忆 |
-| `/api/memory/:userId/tree` | GET | 获取树状结构 |
+| `/api/memory/users` | GET | 有记忆的用户列表（userId/count/lastUpdate/categories） |
+| `/api/memory/stats` | GET | 全局统计 `{ total, users, byCategory }` |
+| `/api/memory/categories` | GET | 分类定义 |
+| `/api/memory/user/:userId` | GET | 用户记忆（format=tree/list） |
+| `/api/memory/user/:userId` | POST | 添加记忆（content 必填） |
+| `/api/memory/search` | POST | 搜索记忆 |
+| `/api/memory/:id` | PUT | 更新单条（数字主键） |
+| `/api/memory/:id` | DELETE | 删除单条（hard 参数） |
+| `/api/memory/user/:userId` | DELETE | 清空用户记忆 |
+| `/api/memory/user/:userId/summarize` | POST | AI 总结 |
+| `/api/memory/user/:userId/cleanup` | POST | 低质量清理 |
+| `/api/memory/batch` | POST | 批量保存 |
+| `/api/memory/merge/:userId` | POST | 合并记忆 |
+| `/api/memory/group/:groupId` | GET | 群组记忆 |
 
 ### 示例请求
 
 ```bash
-# 获取用户记忆
-curl http://localhost:3000/api/memory/123456?category=profile
+# 获取用户记忆（树状结构）
+curl http://localhost:3000/api/memory/user/123456?format=tree
 
 # 添加记忆
-curl -X POST http://localhost:3000/api/memory/123456 \
+curl -X POST http://localhost:3000/api/memory/user/123456 \
   -H "Content-Type: application/json" \
   -d '{
     "category": "preference",
@@ -350,8 +406,15 @@ curl -X POST http://localhost:3000/api/memory/123456 \
   }'
 ```
 
+### 路由遮蔽（重要）
+
+见[记忆接口](/api/memories#兼容路由的遮蔽语义)：纯数字路径（QQ 号）与
+`/user/:userId` 的语义不同，数字路径始终按「主键查单条」处理。
+
 ## 下一步
 
 - [存储系统](./storage) - 数据库服务
 - [数据流](./data-flow) - 完整请求流程
+- [知识图谱服务](./knowledge-graph) - 结构化知识（实体/关系）
+- [记忆接口](/api/memories) - `/api/memory` 端点
 - [记忆配置](/config/memory) - 配置选项

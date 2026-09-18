@@ -1,20 +1,13 @@
 # 模型配置
 
-本文档介绍模型选择和参数配置。
+本文档介绍模型选择渠道模型参数。**注意**：本页旧版以 `channels[].modelParams` / `channels[].model` / `channels[].stream` / `channels[].tags` / `channels[].supportTools` / `channels[].supportVision` / `presets modelParams` / `models.aliases` 等结构书写示例，这些结构在代码中不存在。模型参数的真相如下：
+
+- 默认模型、场景模型、备选模型位于顶层 `llm` 段，见 [基础配置](./basic#llm-模型配置-llm)。
+- 渠道支持模型列表在 `channels[].models`；渠道级生成参数（temperature / maxTokens / topP / frequencyPenalty / presencePenalty / maxCharacters）在 `channels[].advanced.llm`，见 [渠道高级配置](./channels-advanced)。
+- 温度解析顺序（`src/services/llm/TemperatureResolver.js`）：请求 > 预设 > `channels[].advanced.llm.temperature` 等。
+- 模型映射在渠道 `overrides.modelMapping`（`{ "requested": "actual" }`）。
 
 ## 模型参数
-
-### 基础参数
-
-```yaml
-channels:
-  - name: default
-    model: gpt-4o
-    modelParams:
-      temperature: 0.7
-      maxTokens: 4096
-      topP: 1.0
-```
 
 ### 参数说明
 
@@ -26,97 +19,59 @@ channels:
 | `frequencyPenalty` | number | -2~2 | 频率惩罚，减少重复 |
 | `presencePenalty` | number | -2~2 | 存在惩罚，增加话题多样性 |
 
-## 常用模型
-
-### OpenAI
-
-| 模型 | 说明 | 上下文 |
-|------|------|--------|
-| `gpt-5.2` | 多模态旗舰 | 128K |
-| `gpt-5-nano` | 轻量高效 | 128K |
-
-### Claude
-
-| 模型 | 说明 | 上下文 |
-|------|------|--------|
-| `claude-sonnet-4-5` | 最新 Sonnet 4 | 200K |
-| `claude-3-5-sonnet` | Sonnet 3.5 | 200K |
-| `claude-4-5-haiku` | 快速响应 | 200K |
-| `claude-3-opus` | Opus 3 | 200K |
-
-### Gemini
-
-| 模型 | 说明 | 上下文 |
-|------|------|--------|
-| `gemini-3-flash` | 最新 Flash | 1M |
-| `gemini-3-pro` | 最新 Pro | 1M |
-| `gemini-2.0-flash` | Flash 2.0 | 1M |
-| `gemini-2.5-pro` | 专业版 | 2M |
-
-### DeepSeek
-
-| 模型 | 说明 | 上下文 |
-|------|------|--------|
-| `deepseek-chat` | V3 对话模型 | 64K |
-| `deepseek-reasoner` | R1 推理模型 | 64K |
-
-### xAI Grok
-
-| 模型 | 说明 | 上下文 |
-|------|------|--------|
-| `grok-3` | Grok 3 旗舰 | 131K |
-| `grok-3-mini` | Grok 3 轻量 | 131K |
-
-### Mistral
-
-| 模型 | 说明 | 上下文 |
-|------|------|--------|
-| `mistral-large-latest` | 旗舰模型 | 128K |
-| `codestral-latest` | 代码专用 | 256K |
-
-### Groq
-
-| 模型 | 说明 | 上下文 |
-|------|------|--------|
-| `llama-3.3-70b-versatile` | Llama 3.3 | 128K |
-| `mixtral-8x7b-32768` | Mixtral MoE | 32K |
-
-### 国内厂商
-
-| 模型 | 提供商 | 上下文 |
-|------|--------|--------|
-| `glm-4-plus` / `glm-4-flash` | 智谱 AI | 128K |
-| `qwen-max` / `qwen-plus` | 通义千问 | 128K |
-| `moonshot-v1-128k` | Moonshot Kimi | 128K |
-
-## 模型选择策略
-
-### 按场景选择
+以上参数在渠道内配置于：
 
 ```yaml
 channels:
-  - name: chat
-    model: gpt-4o-mini
-    tags: [chat, default]
-    
-  - name: coding
-    model: gpt-4o
-    tags: [coding]
-    
-  - name: creative
-    model: claude-3-5-sonnet-20241022
-    tags: [creative, writing]
+  - id: my-channel
+    name: default
+    models:
+      - gpt-4o
+    advanced:
+      llm:
+        temperature: 0.7
+        maxTokens: 4000
+        topP: 1
+        frequencyPenalty: 0
+        presencePenalty: 0
+        maxCharacters: 0
 ```
+
+## 常用模型
+
+用品市场模型的介绍型列表（OpenAI / Claude / Gemini / DeepSeek / xAI Grok / Mistral / Groq / 国内厂商）与具体渠道的可用模型无关——可用模型以 `channels[].models` 与各厂商平台为准，请以渠道测试结果为准（渠道页可「测试连接」）。
+
+| 模型 | 说明 | 上下文 |
+|------|------|--------|
+| `claude-3-5-sonnet-20241022` | Claude 3.5 Sonnet（默认健康检查兜底模型之一） | 200K |
+| `gpt-4o-mini` | OpenAI 轻量模型（默认健康检查兜底模型之一） | 128K |
+| `gemini-2.5-flash` | Gemini 轻量模型（默认健康检查兜底模型之一） | 1M |
+| `qwen/qwen3-next-80b-a3b-instruct` | 默认配置的默认模型 | - |
+
+## 模型选择策略
+
+### 按场景选择（llm.models）
+
+```yaml
+llm:
+  models:
+    chat: ''        # 对话模型 - 用于普通聊天
+    image: ''       # 图像模型 - 用于图像理解和生成
+    roleplay: ''    # 伪人模型 - 用于模拟真人回复
+    dispatch: ''    # 工具调度模型 - 用于工具组/意图分发
+    tools: ''       # 工具执行模型 - 用于工具相关调用
+    vision: ''      # 视觉模型 - 用于图像理解
+    search: ''      # 搜索模型 - 用于联网搜索总结
+    summary: ''     # 群聊总结模型
+    profile: ''     # 用户画像模型
+    game: ''        # 游戏模型 - 用于Galgame等互动游戏
+```
+
+留空使用默认模型（`llm.defaultModel`）。
 
 ### 预设中指定
 
-```yaml
-# 预设文件
-name: coder
-model: gpt-4o
-modelParams:
-  temperature: 0.3
-```
+预设中的模型与参数配置属于预设系统（`data/presets.json` / 预设管理接口），不在本页默认配置范围内，详见 [人格隔离配置](./personality)。
 
 ## 温度调优
 
@@ -139,84 +94,26 @@ modelParams:
 
 ```yaml
 context:
-  # 最大消息数
   maxMessages: 20
-  
-  # 最大 Token 数（可选，会自动截断）
-  maxTokens: 8000
+  maxTokens: 4000
 ```
+
+上下文压缩相关见 [上下文配置](./context)。
 
 ## 流式响应
 
-```yaml
-channels:
-  - name: default
-    model: gpt-4o
-    stream: true  # 启用流式响应
-```
+渠道级流式开关为 `channels[].advanced.streaming.enabled`（默认配置注释示例为 `false`，实例渠道多配置为 `true`），全局 `streaming.enabled` 默认 `true`。详见 [渠道高级配置](./channels-advanced) 与 [思考 / 渲染 / 输出优化配置](./shared-advanced)。
 
-流式响应可以：
-- 更快显示首字
-- 改善用户体验
-- 支持长文本生成
-
-## 工具调用
-
-支持工具调用的模型：
-
-| 模型 | 工具调用 |
-|------|----------|
-| GPT-4o / o1 / o3 | ✅ |
-| Claude 3.5+ / 4 | ✅ |
-| Gemini 2.0+ / 2.5 | ✅ |
-| DeepSeek V3 | ✅ |
-| Grok 3 | ✅ |
-| Mistral Large | ✅ |
-| GLM-4 系列 | ✅ |
-| Qwen 系列 | ✅ |
-
-配置：
-
-```yaml
-channels:
-  - name: default
-    model: gpt-4o
-    supportTools: true
-```
-
-## 视觉能力
-
-支持图片理解的模型：
-
-| 模型 | 视觉 |
-|------|------|
-| GPT-4o | ✅ |
-| Claude 3.5+ / 4 | ✅ |
-| Gemini 2.0+ / 2.5 | ✅ |
-| Grok 3 | ✅ |
-| GLM-4V 系列 | ✅ |
-| Qwen-VL 系列 | ✅ |
-
-配置：
-
-```yaml
-channels:
-  - name: vision
-    model: gpt-4o
-    supportVision: true
-```
-
-## 动态模型选择
-
-通过 API 获取可用模型：
+## 动态模型获取
 
 ```
-#获取模型列表
+#获取模型列表（未在命令清单中核实到该命令，勿直接照抄）
 ```
 
-或在 Web 面板中点击「获取模型」按钮。
+可在渠道编辑面板中执行「测试连接」/获取模型列表等操作（以面板实际按钮为准）。
 
 ## 下一步
 
 - [触发配置](./triggers) - 触发方式配置
 - [上下文配置](./context) - 上下文管理
+- [渠道配置](./channels) - 渠道模型列表与测试

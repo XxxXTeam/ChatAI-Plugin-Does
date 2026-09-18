@@ -1,283 +1,160 @@
 # 渠道配置
 
-渠道是连接 AI 模型的配置单元，本文档详细说明渠道配置选项。
+渠道是连接 AI 模型的配置单元。本文对照 config 默认配置（`config/config.js` 的 `getDefaultConfig()`，对应提交 `5351e7d7`）中 `channels` 数组元素的注释结构编写；历史上在本页出现过的 `type` / `model` / `maxRetries` / `retryDelay` / `retryBackoff` / `retryOn` / `headers` / `proxy` 等渠道顶层字段在代码中不存在，已按源码更正（见文末说明）。
 
-## Web 面板配置
+## 渠道顶层字段 {#fields}
 
-推荐使用 Web 管理面板进行渠道配置，提供可视化界面：
+`config` 顶层 `channels: []` 是渠道数组，每个渠道的字段如下：
 
-![渠道管理](/images/image10.png)
-
-### 添加/编辑渠道
-
-点击「添加渠道」或编辑现有渠道：
-
-![编辑渠道](/images/image12.png)
-
-### 高级配置
-
-展开高级设置配置更多选项：
-
-![高级配置](/images/image13.png)
-
-### LLM 参数
-
-配置模型生成参数：
-
-![LLM参数](/images/image14.png)
-
-## 配置文件
-
-也可以直接编辑配置文件 `config/config.yaml`：
-
-## 配置结构
-
-```yaml
-channels:
-  - name: default
-    type: openai
-    baseUrl: https://api.openai.com/v1
-    apiKey: sk-xxx
-    model: gpt-4o
-    enabled: true
-```
-
-## 配置参数
-
-### 必需参数
-
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| `name` | string | 渠道名称（唯一标识） |
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `id` | string | 渠道 ID（唯一标识） |
+| `name` | string | 渠道名称 |
+| `adapterType` | string | 适配器类型：`'openai'` / `'claude'` / `'gemini'` |
+| `baseUrl` | string | 单个 Base URL（兼容旧格式） |
+| `baseUrls` | string[] | 多个 Base URL 数组（支持自动选择最优延迟）；第一个不可用时自动切换下一个 |
+| `baseUrlLatencies` | object | Base URL 延迟测试结果，格式 `{ "url": latency(ms) }` |
+| `selectedBaseUrlIndex` | number | 当前选中的 Base URL 索引 |
 | `apiKey` | string | API 密钥 |
-| `model` | string | 默认模型 |
+| `apiKeys` | array | 多 API Key 配置（支持轮询策略，见下） |
+| `strategy` | string | API Key 轮询策略：`'round-robin'` / `'random'` / `'weighted'` / `'least-used'` / `'failover'`（见下方「API Key 轮询策略」） |
+| `models` | string[] | 支持的模型列表 |
+| `enabled` | boolean | 是否启用 |
+| `priority` | number | 优先级（数字越小优先级越高） |
+| `weight` | number | 负载均衡权重（1-100） |
 
-### 可选参数
+渠道级超时、重试、配额等对象配置（`timeout` / `retry` / `quota` / `auth` / `imageConfig` / `experimental` / `overrides` / `advanced` / `systemPromptConfig`）见 [渠道高级配置](./channels-advanced)。
 
-| 参数 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `type` | string | `openai` | 渠道类型 |
-| `baseUrl` | string | - | API 端点 |
-| `enabled` | boolean | `true` | 是否启用 |
-| `weight` | number | `1` | 负载均衡权重 |
-| `priority` | number | `1` | 故障转移优先级 |
-| `timeout` | number | `60000` | 超时时间（毫秒） |
-| `maxRetries` | number | `3` | 最大重试次数 |
+### API Key 轮询策略 {#key-strategy}
 
-## 渠道类型
+`ChannelManager` 中定义了 `KeyStrategy`（`src/services/llm/ChannelManager.js`）：
 
-### openai
+| 枚举值 | 含义 |
+| --- | --- |
+| `'round-robin'` | 轮询（默认，缺省时回退到该策略） |
+| `'random'` | 随机 |
+| `'weighted'` | 按权重随机 |
+| `'least-used'` | 最少使用优先 |
+| `'failover'` | 故障转移（按顺序，失败后换下一个） |
 
-OpenAI 兼容 API，包括官方 API 和各类中转服务：
+多渠道负载均衡由独立的 [loadBalancing 配置](./shared-advanced#loadbalancing) 控制。
+
+### 渠道状态 status
+
+| 枚举值 | 含义 |
+| --- | --- |
+| `'idle'` | 空闲 |
+| `'active'` | 活跃 |
+| `'error'` | 错误 |
+| `'disabled'` | 禁用 |
+| `'quota_exceeded'` | 配额耗尽 |
+
+## 渠道示例
 
 ```yaml
 channels:
-  - name: openai
-    type: openai
+  - id: my-openai
+    name: openai-main
+    adapterType: openai
     baseUrl: https://api.openai.com/v1
+    baseUrls:
+      - https://api.openai.com/v1
+      - https://api-backup.example.com/v1
+    baseUrlLatencies: {}
+    selectedBaseUrlIndex: 0
     apiKey: sk-xxx
-    model: gpt-4o
+    apiKeys: []
+    strategy: round-robin
+    models:
+      - gpt-4o
+      - gpt-4o-mini
+    enabled: true
+    priority: 100
+    weight: 100
+    chatPath: ''
+    modelsPath: ''
+    endpoints:
+      chat: ''
+      models: ''
+      embeddings: ''
+      images: ''
+    customHeaders: {}
+    headersTemplate: ""
+    requestBodyTemplate: ""
+    systemPromptConfig: null
+    auth:
+      type: bearer
+      headerName: ""
+      prefix: ""
+    imageConfig:
+      transferMode: auto
+      convertFormat: true
+      targetFormat: auto
+      compress: true
+      quality: 85
+      maxSize: 4096
+      processAnimated: true
+    experimental:
+      supportsReasoningParams: false
+      ws:
+        enabled: false
+        url: ""
+    timeout:
+      connect: 10000
+      read: 60000
+    retry:
+      maxAttempts: 3
+      delay: 1000
+      backoff: exponential
+    quota:
+      daily: 0
+      hourly: 0
+      perMinute: 0
+    overrides:
+      disableTemperature: false
+      modelTemperatures: null
+      modelMapping: {}
+      systemPromptPrefix: ""
+      systemPromptSuffix: ""
+    advanced:
+      streaming:
+        enabled: true
+        chunkSize: 1024
+      thinking:
+        enableReasoning: false
+        defaultLevel: medium
+        adaptThinking: true
+        sendThinkingAsMessage: false
+        vendorThinkingControl: auto
+      llm:
+        temperature: 0.7
+        maxTokens: 4000
+        topP: 1
+        frequencyPenalty: 0
+        presencePenalty: 0
+        maxCharacters: 0
+    status: active
+    lastHealthCheck: null
+    testedAt: null
+    errorCount: 0
+    lastErrorTime: null
 ```
 
-### claude
+适配器类型示例说明：
 
-Anthropic Claude API：
-
-```yaml
-channels:
-  - name: claude
-    type: claude
-    apiKey: sk-ant-api03-xxx
-    model: claude-3-5-sonnet-20241022
-```
-
-### gemini
-
-Google Gemini API：
-
-```yaml
-channels:
-  - name: gemini
-    type: gemini
-    apiKey: AIzaSyxxx
-    model: gemini-2.0-flash
-```
-
-## 内置免费渠道 {#free-channels}
+- `openai`：OpenAI 兼容 API，包括官方 API 和各类中转服务，接入时主要调整 `baseUrl` 与 `apiKey`。
+- `claude`：Anthropic Claude API。
+- `gemini`：Google Gemini API。
 
 ::: warning 免费渠道说明
-插件可能预配置了一些免费/演示渠道（如免费 Gemini、GLM 等），这些渠道由逆向服务提供：
-- **不保证可用性**：免费渠道随时可能停止服务、限流或变更
-- **不保证稳定性**：响应速度和质量可能不稳定
+`config.yaml` 实例中可能包含预配置渠道（包括免费/演示渠道），这些渠道随时可能停止服务、限流或变更，不保证可用性与稳定性。如需稳定使用，请自行申请 API Key 后配置专用渠道。
 :::
-
-如需稳定使用，请参考下方提供商列表申请自己的 API Key。
-
-## 支持的 API 提供商 {#providers}
-
-### 国际厂商
-
-| 服务 | baseUrl | 特性 |
-|------|---------|------|
-| **OpenAI** | `https://api.openai.com/v1` | 对话、视觉、工具、嵌入、语音 |
-| **Anthropic Claude** | `https://api.anthropic.com` | 对话、视觉、工具、思维链 |
-| **Google Gemini** | `https://generativelanguage.googleapis.com` | 对话、视觉、工具、搜索增强 |
-| **xAI Grok** | `https://api.x.ai/v1` | 对话、工具 |
-| **Mistral AI** | `https://api.mistral.ai/v1` | 对话、嵌入、工具 |
-| **Groq** | `https://api.groq.com/openai/v1` | 对话、工具（超快推理） |
-
-### 国内厂商
-
-| 服务 | baseUrl | 特性 |
-|------|---------|------|
-| **DeepSeek** | `https://api.deepseek.com/v1` | 对话、工具、推理 |
-| **智谱 AI** | `https://open.bigmodel.cn/api/paas/v4` | 对话、视觉、工具、嵌入 |
-| **通义千问** | `https://dashscope.aliyuncs.com/compatible-mode/v1` | 对话、视觉、工具、嵌入 |
-| **Moonshot Kimi** | `https://api.moonshot.cn/v1` | 对话、工具、文件 |
-| **MiniMax** | `https://api.minimax.chat/v1` | 对话、工具、TTS |
-| **零一万物** | `https://api.lingyiwanwu.com/v1` | 对话、视觉、工具 |
-| **百川智能** | `https://api.baichuan-ai.com/v1` | 对话、工具 |
-
-### 中转/聚合服务
-
-| 服务 | baseUrl | 说明 |
-|------|---------|------|
-| **OpenRouter** | `https://openrouter.ai/api/v1` | 聚合多家模型，统一接口 |
-| **硅基流动** | `https://api.siliconflow.cn/v1` | 国内聚合平台 |
-| **Together AI** | `https://api.together.xyz/v1` | 开源模型托管 |
-
-::: tip 兼容性说明
-大部分 OpenAI 兼容 API 都可以直接使用 `openai` 类型接入，只需修改 `baseUrl` 和 `apiKey`。
-:::
-
-## 负载均衡
-
-配置多个渠道实现负载均衡：
-
-```yaml
-channels:
-  - name: primary
-    baseUrl: https://api.openai.com/v1
-    apiKey: sk-xxx
-    model: gpt-4o
-    weight: 3
-    
-  - name: secondary
-    baseUrl: https://api.deepseek.com/v1
-    apiKey: sk-xxx
-    model: deepseek-chat
-    weight: 1
-```
-
-请求会按权重比例分配：
-- primary: 75% (3/4)
-- secondary: 25% (1/4)
-
-## 故障转移
-
-```yaml
-channels:
-  - name: primary
-    apiKey: sk-xxx
-    model: gpt-4o
-    priority: 1  # 最高优先级
-    
-  - name: backup
-    apiKey: sk-xxx
-    model: deepseek-chat
-    priority: 2  # 备用
-```
-
-当高优先级渠道失败时，自动切换到低优先级渠道。
-
-## 错误重试配置
-
-::: info 全局备选模型与旁路重试
-`llm.fallback` 的 `maxRetries`/`retryDelay` 及 LlmDelegate 旁路重试说明见[错误重试与备选模型](#fallback)。本节为渠道级重试参数。
-:::
-
-### 重试参数
-
-| 参数 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `maxRetries` | number | `3` | 最大重试次数 |
-| `retryDelay` | number | `1000` | 初始重试延迟（毫秒） |
-| `retryBackoff` | number | `2` | 退避系数（指数增长） |
-| `timeout` | number | `60000` | 请求超时时间（毫秒） |
-| `retryOn` | array | 见下文 | 触发重试的错误类型 |
-
-### 完整配置示例
-
-```yaml
-channels:
-  - name: openai
-    type: openai
-    baseUrl: https://api.openai.com/v1
-    apiKey: sk-xxx
-    model: gpt-4o
-    
-    # 重试配置
-    maxRetries: 3          # 最多重试 3 次
-    retryDelay: 1000       # 首次重试等待 1 秒
-    retryBackoff: 2        # 每次重试等待时间翻倍
-    timeout: 60000         # 60 秒超时
-    
-    # 触发重试的错误码
-    retryOn:
-      - 429   # 限流
-      - 500   # 服务器错误
-      - 502   # 网关错误
-      - 503   # 服务不可用
-      - 504   # 网关超时
-```
-
-### 重试策略
-
-```
-请求失败
-    │
-    ├─ 429 限流 ───────────► 指数退避重试
-    │                        等待 retryDelay × retryBackoff^n 毫秒
-    │
-    ├─ 500/502/503/504 ───► 立即重试（带延迟）
-    │   服务器错误            尝试 maxRetries 次
-    │
-    ├─ 401/403 ────────────► 不重试
-    │   认证/权限错误          直接报错，提示检查 API Key
-    │
-    ├─ 网络错误 ───────────► 切换渠道
-    │   (ECONNREFUSED等)     尝试其他可用渠道
-    │
-    └─ 超时 ───────────────► 重试或切换渠道
-```
-
-### 禁用重试
-
-```yaml
-channels:
-  - name: no-retry
-    apiKey: sk-xxx
-    model: gpt-4o
-    maxRetries: 0  # 禁用重试
-```
-
-### 自定义重试条件
-
-```yaml
-channels:
-  - name: custom-retry
-    apiKey: sk-xxx
-    model: gpt-4o
-    retryOn:
-      - 429
-      - 503
-    # 只在 429 和 503 时重试，其他错误直接失败
-```
 
 ## 渠道启用与模型列表 {#enabled-list}
 
-- 设置 `enabled: false` 的渠道会被排除：后端聚合接口（群管理面板模型列表）与前端各处模型下拉（全局配置、群编辑器、用户页、绘图页等）均已过滤禁用渠道，其模型不再出现在可用模型列表中。
-- 渠道模型映射（`channelManager.getActualModel`）在 ChatService 主路径与 LlmDelegate 旁路调用中口径一致。
+- 设置 `enabled: false` 的渠道会被排除：后端聚合接口（群管理面板模型列表）与前端各处模型下拉（全局配置、群编辑器、用户页、绘图页等）均过滤禁用渠道，其模型不再出现在可用模型列表中。
+- 渠道模型映射（`getActualModel`）在 ChatService 主路径与 LlmDelegate 旁路调用中口径一致。
+- 修改渠道后建议在面板执行「测试连接」验证连通性（面板测试入口为渠道编辑页的测试按钮）。
 
 ## 错误重试与备选模型 {#fallback}
 
@@ -288,12 +165,11 @@ channels:
 ```yaml
 llm:
   fallback:
-    enabled: true          # 启用备选模型轮询
-    models: []             # 备选模型列表，按优先级排序
-    maxRetries: 3          # 最大重试次数
-    retryDelay: 500        # 重试间隔(ms)
-    notifyOnFallback: false # 切换模型时是否通知用户
-    enableChannelSwitch: true # 备选/旁路调用是否允许切换渠道（未配置默认允许）
+    enabled: true            # 启用备选模型轮询
+    models: []               # 备选模型列表，按优先级排序
+    maxRetries: 3            # 最大重试次数
+    retryDelay: 500          # 重试间隔(ms)
+    notifyOnFallback: false  # 切换模型时是否通知用户
 ```
 
 | 参数 | 类型 | 默认值 | 说明 |
@@ -303,82 +179,33 @@ llm:
 | `maxRetries` | number | `3` | 最大重试次数 |
 | `retryDelay` | number | `500` | 重试间隔（ms） |
 | `notifyOnFallback` | boolean | `false` | 切换模型时是否通知用户 |
-| `enableChannelSwitch` | boolean | `true` | 允许渠道切换。LlmDelegate 旁路调用（记忆/知识图谱/总结）读 `llm.fallback`，`!== false` 即允许 |
+
+可选键 `enableChannelSwitch`（默认配置中无该字段）：`LlmDelegate` 与 `ChatService` 以 `fallback.enableChannelSwitch !== false` 判断，即只要不显式写为 `false` 便允许旁路调用切换渠道（源码 `src/services/llm/LlmDelegate.js`、`src/services/llm/ChatService.js`）。
 
 ::: tip LlmDelegate 旁路重试
-记忆、知识图谱、上下文总结等旁路 LLM 调用通过 `LlmDelegate.callWithChannelDelegate` 统一走渠道切换/指数退避重试（初始间隔 `retryDelay`，封顶 10 秒），错误上报渠道冷却，且遵循各渠道 `advanced.streaming` 配置。`enableChannelSwitch: false` 时旁路调用不再切换渠道。
+记忆、知识图谱、上下文总结等旁路 LLM 调用通过 `callWithChannelDelegate` 统一走渠道切换/指数退避重试（初始间隔 `retryDelay`，封顶 10 秒），错误上报渠道冷却，且遵循各渠道 `advanced.streaming` 配置。`enableChannelSwitch: false` 时旁路调用不再切换渠道。
 :::
 
-## 代理配置
+### 渠道级重试 retry
 
-为渠道配置代理：
+渠道自身的重试配置为 `retry` 对象，结构见 [渠道高级配置：重试配置](./channels-advanced)。渠道**没有**顶层 `maxRetries` / `retryDelay` / `retryBackoff` / `retryOn` 字段，历史文档中的对应写法已更正删除。
 
-```yaml
-channels:
-  - name: openai
-    baseUrl: https://api.openai.com/v1
-    apiKey: sk-xxx
-    proxy:
-      type: http
-      host: 127.0.0.1
-      port: 7890
-```
+错误重试行为说明（据 `ChannelManager` 与 `LlmDelegate` 实现）：
 
-或使用全局代理：
-
-```yaml
-proxy:
-  enabled: true
-  type: http
-  host: 127.0.0.1
-  port: 7890
-
-channels:
-  - name: openai
-    useProxy: true  # 使用全局代理
-```
-
-## 请求头配置
-
-```yaml
-channels:
-  - name: custom
-    baseUrl: https://api.example.com/v1
-    apiKey: xxx
-    headers:
-      X-Custom-Header: value
-      Authorization: Bearer xxx
-```
+- 渠道失败会进入渠道冷却与错误计数（`errorCount` / `lastErrorTime`）。
+- 旁路调用按指数退避重试（封顶 10 秒），并可在渠道间切换（受 `llm.fallback.enableChannelSwitch` 控制）。
 
 ## 环境变量
 
-使用环境变量保护敏感信息：
+渠道密钥可通过 `${VAR}` 形式引用环境变量吗？**未核实到源码中的展开逻辑**，本页不对此作任何保证。请直接将密钥写入 `apiKey` / `apiKeys`，或使用配置面板的密钥管理。
 
-```yaml
-channels:
-  - name: openai
-    apiKey: ${OPENAI_API_KEY}
-```
+## 多渠道选择（loadBalancing）
 
-设置环境变量：
-
-```bash
-export OPENAI_API_KEY=sk-xxx
-```
-
-## 测试渠道
-
-### 命令测试
-
-```
-#测试渠道 openai
-```
-
-### Web 面板测试
-
-渠道配置页面 → 点击「测试连接」
+多渠道场景下，`loadBalancing.strategy` 控制选择策略，支持 `'priority'` / `'round-robin'` / `'random'` / `'least-connection'`，见 [思考 / 渲染 / 输出优化配置](./shared-advanced#负载均衡-loadbalancing)。
 
 ## 下一步
 
-- [模型配置](./models) - 模型参数调优
-- [代理配置](./proxy) - 网络代理设置
+- [渠道高级配置](./channels-advanced) - 端点、图片、超时、重试、配额、参数覆盖
+- [模型配置](./models) - 模型选择与参数调优
+- [代理配置](./proxy) - 渠道 API 请求的代理 profile
+- [思考 / 渲染 / 输出优化配置](./shared-advanced) - 渠道调度相关的全局配置

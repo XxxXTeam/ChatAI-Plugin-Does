@@ -34,8 +34,8 @@ if (!notified) {
 
 `notify` 的返回值决定后续行为：
 
-- 返回 `true` 表示错误已被处理（已成功发送通知，或该错误类型正处于冷却期被静默），此时**不会**再向触发者回复错误。
-- 返回 `false` 表示错误通知未启用或未发出，此时回退到 `formatErrorForUser` 向触发者回复友好错误提示。
+- 返回 `true` 表示错误已被处理：`errorNotify.enabled` 为 `true` 时，无论「已发送」「冷却中」还是「目标发送失败」，一律返回 `true`，错误信息只走通知通道，绝不作为技术错误回复发送到用户对话。
+- 返回 `false` 表示错误通知未启用（`cfg.enabled !== true`），此时回退到 `formatErrorForUser` 向触发者回复友好错误提示。
 
 ::: warning 冷却期也会静默触发者
 当某错误类型处于冷却期，`notify` 同样返回 `true`。这意味着冷却期内触发者既收不到通知也收不到错误回复，属于预期行为——目的是避免同类错误在短时间内反复刷屏。
@@ -43,14 +43,14 @@ if (!notified) {
 
 ## 配置项 {#config}
 
-错误通知的配置读取自 `config.get('errorNotify')`，字段如下：
+错误通知的配置读取自 `config.get('errorNotify')`。**注意**：`errorNotify` 不在 `config.js` 的默认配置（`getDefaultConfig()`）中，属于用户按需添加到 `config.yaml` 的顶层段；`src/services/ErrorNotifier.js` 内的回退为 `|| {}`，因此不配置时所有字段均无值。
 
-| 字段 | 类型 | 默认值 | 说明 |
+| 字段 | 类型 | 代码回退值 | 说明 |
 | --- | --- | --- | --- |
-| `enabled` | `boolean` | `false` | 是否启用错误通知。只有严格等于 `true` 时生效 |
+| `enabled` | `boolean` | 无（不配置视为未启用） | 是否启用错误通知。只有严格等于 `true` 时生效 |
 | `targets` | `Target[]` | `[]` | 通知目标列表，见下方 [目标配置](#targets) |
-| `cooldown` | `number` | `60` | 同一错误类型的通知冷却秒数，`<= 0` 表示不冷却 |
-| `includeDetail` | `boolean` | `true` | 是否在通知中包含错误详情。仅当显式设为 `false` 时省略详情 |
+| `cooldown` | `number` | `60` | 同一错误类型的通知冷却秒数，`<= 0` 表示不冷却；`Number(cfg.cooldown) || 60` 非数值时回退 60 |
+| `includeDetail` | `boolean` | `true` | 是否在通知中包含错误详情。仅当显式设为 `false` 时省略详情（`cfg.includeDetail !== false` 判断） |
 
 ### 目标配置 {#targets}
 
@@ -63,12 +63,12 @@ if (!notified) {
 
 三种类型的处理方式：
 
-- **`group`**：需要提供 `id`，调用 `sendGroupMessage` 向对应群号发送通知。
-- **`user`**：需要提供 `id`，调用 `sendPrivateMessage` 向对应 QQ 私聊发送通知。
-- **`master`**：无需 `id`，向所有主人逐个私聊发送。主人列表由 `_getMasterQQList` 汇总得到：先取插件配置 `admin.masterQQ`，再合并 Yunzai 框架 `Bot.config.masterQQ` / `Bot.config.master`，去重后使用。
+- **`group`**：需要提供 `id`，调用 `api.sendGroup(target.id, message)`（`StandardBotApi`）向对应群号发送通知。
+- **`user`**：需要提供 `id`，调用 `api.sendPrivate(target.id, message)` 向对应 QQ 私聊发送通知。
+- **`master`**：无需 `id`，向所有主人逐个私聊发送。主人列表由 `_getMasterQQList` 汇总得到：先取插件配置 `admin.masterQQ`，再合并 Yunzai 框架 `Bot.config.masterQQ` / `Bot.config.master`（保留协议端原始标识，QQBot OpenID 不转数字），去重后使用。
 
 ::: tip 关于 master 目标
-使用 `master` 类型即可自动通知所有主人，无需手动维护 QQ 号。若同时配置了插件 `admin.masterQQ` 和 Yunzai 框架主人，两者会合并去重。
+使用 `master` 类型即可自动通知所有主人，无需手动维护 QQ 号。若同时配置了插件 `admin.masterQQ` 和 Yunzai 框架主人，两者会合并去重；两者都为空时 `master` 目标不会发送给任何人，`notify` 结尾会记录 warn。
 :::
 
 ## 错误类型分类 {#error-types}

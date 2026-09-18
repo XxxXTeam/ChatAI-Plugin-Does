@@ -166,3 +166,4 @@ Components listed in dependency order, upper components depend on lower ones.
 | [Data Flow](./data-flow) | Request processing flow | ⭐⭐⭐ |
 | [LLM Adapters](./adapters) | Multi-model adaptation implementation | ⭐⭐⭐ |
 | [Storage System](./storage) | Data persistence solution | ⭐⭐ |
+| [Memory System](./memory) | Long-term memory and extraction | ⭐⭐ |

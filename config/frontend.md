@@ -20,33 +20,25 @@ Web 管理面板的配置与使用说明。
 2. 登录后会设置 Cookie，后续访问无需重复登录
 3. Cookie 有效期默认 24 小时
 
-## Web 服务配置
+## Web 服务相关配置
 
-### 基础配置
-
-```yaml
-web:
-  enabled: true           # 启用 Web 服务
-  port: 3000              # 监听端口
-  host: "0.0.0.0"         # 监听地址，0.0.0.0 允许外部访问
-```
-
-### 端口配置
+Web 服务配置的**默认配置**（`web` 顶层段，见 `config/config.js`）：
 
 ```yaml
 web:
-  port: 3000              # 默认端口
-  # port: 8080            # 如 3000 被占用，可改用其他端口
+  port: 3000           # 监听端口
+  sharePort: false     # TRSS 环境下共享端口
+  mountPath: /chatai   # TRSS 共享端口时的挂载路径
+  corsOrigins: []      # 额外允许跨域访问的来源
 ```
 
-:::: tip 端口冲突
-如果端口被占用，插件会自动切换到其他可用端口，无需手动处理。
-
-```bash
-# 检查端口占用
-netstat -tlnp | grep 3000
-```
+::: danger 历史页面更正
+本页旧版书写的 `web.enabled` / `web.host` / `web.security` / `web.auth` / `web.rateLimit` / `web.theme` 以及 `basePath` 写法均无代码依据，已删除。真实的 `web` 段结构见 [思考 / 渲染 / 输出优化配置](./shared-advanced#web)。
 :::
+
+### 端口冲突
+
+端口被占用（`EADDRINUSE`）时，服务端会自动尝试切换端口（`src/services/webServer.js`）。也可以直接修改 `web.port`。系统不会打印外部端口检测命令，如需排查可用系统工具自行检查。
 
 ### TRSS 共享端口
 
@@ -55,46 +47,16 @@ netstat -tlnp | grep 3000
 ```yaml
 web:
   sharePort: true         # 使用 Yunzai 的端口
-  basePath: /chatai       # 路径前缀
+  mountPath: /chatai      # 共享端口时的挂载路径
 ```
 
-访问地址变为：`http://your-server:yunzai-port/chatai`
+访问地址变为：`http://your-server:yunzai-port/chatai`。
 
-## 安全配置
+## 登录令牌
 
-### 访问控制
-
-```yaml
-web:
-  security:
-    # 允许访问的 IP 白名单（空则允许所有）
-    allowedIPs: []
-    
-    # 启用 HTTPS（需要证书）
-    https:
-      enabled: false
-      cert: /path/to/cert.pem
-      key: /path/to/key.pem
-```
-
-### Token 配置
-
-```yaml
-web:
-  auth:
-    tokenExpiry: 86400000   # Token 有效期（毫秒），默认 24 小时
-    cookieSecure: false     # 生产环境建议设为 true（需 HTTPS）
-    cookieHttpOnly: true    # 防止 XSS 攻击
-```
-
-### 限流配置
-
-```yaml
-web:
-  rateLimit:
-    windowMs: 60000         # 时间窗口（毫秒）
-    maxRequests: 60         # 最大请求数
-```
+- 登录链接由 `#ai管理面板` 命令生成（`apps/Management.js`），支持临时登录链接与永久链接（`web.permanentAuthToken`，运行期键）。
+- 登录后 Cookie 有效期为 30 天（`src/services/webServer.js` 中签发 token 使用 `expiresIn: '30d'`、JWT 算法 `HS256`），旧文档书写的「24 小时」与代码不符。
+- `web.jwtSecret` 未配置时自动生成 UUID 并写回配置。
 
 ## 面板功能
 
@@ -281,73 +243,64 @@ pnpm dev
 
 | 技术 | 说明 |
 |------|------|
-| React 19 | UI 框架 |
-| Vite | 构建工具 |
-| TailwindCSS | 样式框架 |
-| shadcn/ui | 组件库 |
-| Lucide | 图标库 |
-| React Query | 数据请求 |
+| Next.js 16.1.5 | React 框架 |
+| React 19.2.1 | UI 框架 |
+| TailwindCSS 4 | 样式框架 |
+| Radix UI + shadcn 风格组件 | 组件库 |
+| lucide-react 0.556 | 图标库 |
+| SWR / zustand / react-hook-form / immer | 数据请求与状态管理 |
 
 ### 构建生产版本
 
 ```bash
-pnpm build
+pnpm build       # 包含 lint 与 next build
+pnpm export      # 构建并输出到 ../resources/web（npm run export 脚本）
 ```
 
-构建产物输出到 `resources/web/` 目录。
+构建产物输出到 `resources/web/` 目录（Next.js 静态导出，`distDir: 'out'`）。
 
 ### 自定义主题
 
-```yaml
-web:
-  theme:
-    primaryColor: "#6366f1"   # 主题色
-    darkMode: auto            # auto/light/dark
-```
+未在配置系统中核实到 `web.theme` 之类的主题配置键，主题调整请通过前端源码进行。
 
 ## API 调用
 
-前端通过 REST API 与后端通信：
+前端通过 REST API 与后端通信，鉴权路由挂载于 `/api/...`（`src/services/webServer.js` 中 `router.use('/api/config', auth, configRoutes)` 等）。
 
 ```javascript
-// 获取渠道列表
-const response = await fetch('/api/config/channels', {
-  credentials: 'include'  // 携带 Cookie
-})
-const { data } = await response.json()
-
-// 更新配置
+// 更新配置：POST /api/config，对象深度合并后一次性保存
 await fetch('/api/config', {
-  method: 'PUT',
+  method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   credentials: 'include',
   body: JSON.stringify({
-    path: 'trigger.prefix',
-    value: '#ai'
+    'basic.debug': false,
+    'trigger.group.at': true
   })
 })
 ```
+
+- 配置读取接口族在 `src/services/routes/configRoutes.js`（如 `GET /api/config`、`GET /api/config/advanced`、`GET /api/config/triggers`、`GET /api/config/context`、`GET/PATCH /api/config/personality`、`GET/POST /api/config/redis` 等）。
+- 写入接口对 `__proto__` / `constructor` / `prototype` 路径做安全校验。
 
 ## 常见问题
 
 ### 无法访问面板
 
-1. 检查 Web 服务是否启用：`web.enabled: true`
-2. 检查端口是否正确
-3. 检查防火墙设置
-4. 如果是远程服务器，确保 `host: "0.0.0.0"`
+1. 检查 `web.port` 配置与防火墙设置。
+2. 端口占用时服务端会自动尝试切换，注意日志中的实际端口。
 
 ### 登录失败
 
-1. 临时 token 可能已过期，重新获取
-2. 检查时钟是否同步
-3. 清除浏览器 Cookie 后重试
+1. 临时 token 可能已过期，重新获取 `#ai管理面板`。
+2. 检查时钟是否同步。
+3. 清除浏览器 Cookie 后重试。
 
 ### 配置不生效
 
-1. 部分配置修改后需要重启插件
-2. 检查配置格式是否正确
-3. 查看控制台是否有报错
+1. 部分配置修改后需要重启插件（如 `web.port`）。
+2. 检查配置格式是否正确。
+3. 查看控制台是否有报错。
 
 ## 下一步
 

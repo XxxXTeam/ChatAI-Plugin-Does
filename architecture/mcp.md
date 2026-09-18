@@ -130,43 +130,29 @@ McpClient 实现 MCP 协议的客户端，支持四种传输类型。
 
 ## BuiltinMcpServer
 
-管理内置工具和自定义 JS 工具：
+管理内置工具和自定义 JS 工具。25 个内置工具类别由
+`src/mcp/tools/index.js` 的 `toolModules` 表统一组织（类别键 → 模块文件/导出名），
+`categoryMeta` 提供面板显示元信息：
 
 ```javascript
-class BuiltinMcpServer {
-  // 模块化工具
-  modularTools = []
-  toolCategories = {}
-  
-  // JS 文件工具
-  jsTools = new Map()
-  
-  // 文件监听器
-  fileWatchers = []
-  
-  // 加载模块化工具
-  async loadModularTools() {
-    const categories = ['basic', 'user', 'group', 'message', 'media', 'web']
-    
-    for (const category of categories) {
-      const tools = await import(`./tools/${category}/index.js`)
-      this.registerCategory(category, tools)
-    }
-  }
-  
-  // 加载 JS 工具
-  async loadJsTools() {
-    const toolsDir = 'data/tools'
-    const files = await fs.readdir(toolsDir)
-    
-    for (const file of files) {
-      if (file.endsWith('.js')) {
-        await this.loadJsTool(path.join(toolsDir, file))
-      }
-    }
-  }
+// src/mcp/tools/index.js 的核心结构
+const toolModules = {
+    basic: { file: './basic.js', export: 'basicTools' },
+    user: { file: './user.js', export: 'userTools' },
+    // ...共 25 类（basic/user/group/message/admin/groupStats/file/web/
+    // memory/context/media/search/utils/bot/voice/extra/shell/schedule/
+    // bltools/reminder/imageGen/qzone/emoji/skills/knowledgeGraph），
+    // schedule 类别映射到 ./nlSchedule.js，message 合并两个导出。
+    knowledgeGraph: { file: './knowledgeGraph.js', export: 'knowledgeGraphTools' }
 }
+
+// 动态导入 + 秒级缓存（loadToolModules）；forceReload 才加时间戳破坏缓存
+// getAllTools({ enabledCategories, disabledTools }) 组装最终工具列表
 ```
+
+`BuiltinMcpServer` 侧通过 `getCategoryInfo()` / `getAllTools()` 消费这些类别，
+负责注册、启用/禁用过滤与热重载。具体类别与工具清单见
+[内置工具](/tools/builtin#tool-categories)。
 
 ## 工具定义格式
 

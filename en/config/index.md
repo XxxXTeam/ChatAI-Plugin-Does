@@ -51,12 +51,16 @@ After modifying config file directly, run `#ai重载配置` or restart to apply.
 | **Models** | Model selection and parameter tuning | [Models](./models) | ⭐⭐⭐ |
 | **Triggers** | Trigger methods and conditions | [Triggers](./triggers) | ⭐⭐ |
 | **Context** | Conversation context management | [Context](./context) | ⭐⭐ |
+| **Personality Isolation** | Per-scope personas, presets, models | [Personality](./personality) | ⭐⭐ |
+| **Tool Groups** | Group built-in tools for dispatch | [Tool Groups](./tool-groups) | ⭐⭐ |
 | **Memory** | Long-term memory system | [Memory](./memory) | ⭐⭐ |
 | **MCP** | MCP server integration | [MCP](./mcp) | ⭐⭐ |
 | **Proxy** | Network proxy settings | [Proxy](./proxy) | ⭐ |
 | **Frontend** | Web admin panel customization | [Frontend](./frontend) | ⭐ |
 | **Features** | Group summary, portraits, events | [Features](./features) | ⭐⭐ |
 | **BYM Mode** | Persona mode, proactive chat | [BYM](./bym) | ⭐ |
+| **Error Notification** | Forward API errors to admins | [Error Notification](./error-notify) | ⭐⭐ |
+| **Advanced Config** | Env vars, load balancing, security | [Advanced](./advanced) | ⭐⭐⭐ |
 
 ## Configuration File Structure {#config-structure}
 

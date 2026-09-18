@@ -65,7 +65,7 @@ graph TB
 |:-----|:-----|:-----|
 | **McpManager** | `src/mcp/McpManager.js` | 统一管理所有工具来源，提供工具注册、查询、调用接口 |
 | **McpClient** | `src/mcp/McpClient.js` | MCP 协议客户端，支持 stdio/npm/SSE/HTTP 多种传输 |
-| **BuiltinMcpServer** | `src/mcp/BuiltinMcpServer.js` | 内置工具服务器，管理 22 个类别的工具和自定义 JS 工具 |
+| **BuiltinMcpServer** | `src/mcp/BuiltinMcpServer.js` | 内置工具服务器，管理 25 个类别的工具和自定义 JS 工具 |
 
 ### Skills Agent {#skills-agent}
 
@@ -107,11 +107,11 @@ chatgpt-plugin/
 │   │   ├── McpManager.js    # MCP 管理器
 │   │   ├── McpClient.js     # MCP 客户端
 │   │   ├── BuiltinMcpServer.js  # 内置工具服务器
-│   │   └── tools/           # 内置工具（22个类别）
+│   │   └── tools/           # 内置工具（25个类别）
 │   └── services/            # 服务层
 │       ├── agent/           # Skills Agent
-│       ├── llm/             # LLM 服务
-│       ├── storage/         # 存储服务
+│       ├── llm/             # LLM 服务（LlmService、LlmDelegate）
+│       ├── storage/         # 存储服务（MemoryManager、KnowledgeGraphService）
 │       ├── routes/          # API 路由
 │       └── webServer.js     # Web 服务
 └── index.js                 # 插件入口
@@ -166,3 +166,6 @@ chatgpt-plugin/
 | [数据流](./data-flow) | 请求处理流程 | ⭐⭐⭐ |
 | [LLM 适配器](./adapters) | 多模型适配实现 | ⭐⭐⭐ |
 | [存储系统](./storage) | 数据持久化方案 | ⭐⭐ |
+| [记忆系统](./memory) | 记忆服务与轮询游标 | ⭐⭐ |
+| [知识图谱服务](./knowledge-graph) | 实体/关系/版本/子图 | ⭐⭐ |
+| [渲染服务](./canvas-renderer) | Markdown/公式转图片 | ⭐ |

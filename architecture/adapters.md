@@ -267,6 +267,19 @@ classDiagram
 - 函数调用风格 `funcName({...})`
 - 自动修复格式错误的 JSON
 
+### 工具调用 ID 规则与去重
+
+- **回退 ID**：解析出的工具调用缺少 `id` 时，用 `generateToolId(prefix)`
+  （`prefix_<时间戳>_<随机串>`）补一个随机串 ID（各解析分支前缀为
+  `xml` / `invoke` / `block` / `json` / `single` / `escaped` / `extract` /
+  `fuzzy` / `funcall` / `recover` 等，共 16 处）。
+- **ID 归一化**：任何来源的工具调用 ID 写入结果/历史前统一为字符串
+  （`normalizeAnyToolCallId`，位于 `tooling.js`），assistant 侧 `id` 与 tool 侧
+  `tool_call_id` 口径一致；空值兜底为随机 UUID 字符串。
+- **保存前确定性去重**：历史保存前只去除「确定性重复」的调用
+  （`modelResponse.toolCalls` 按内容/ID 去重），并为去除的工具调用生成同
+  `tool_call_id` 的错误结果供模型自纠。
+
 ## 扩展适配器
 
 添加新的 LLM 适配器：
@@ -292,3 +305,8 @@ export { MyClient } from './my/MyClient.js'
 
 - [聊天服务](./chat-service) - 聊天服务实现
 - [存储系统](./storage) - 数据持久化
+
+> 补充：适配器三件套（`OpenAIClient` / `ClaudeClient` / `GeminiClient`）所依赖的
+> 工具调用 ID 口径见上文[工具调用 ID 规则](#工具调用-id-规则与去重)——回退 ID 为
+> `prefix_<时间戳>_<随机串>`，跨来源结果统一经 `normalizeAnyToolCallId` 字符串化，
+> 保证 assistant 侧 `id` 与 tool 侧 `tool_call_id` 一致。

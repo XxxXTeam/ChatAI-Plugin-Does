@@ -30,7 +30,7 @@ src/mcp/tools/
 ├── voice.js         # 语音/声聊
 ├── extra.js         # 扩展工具
 ├── shell.js         # 系统命令（⚠️危险）
-├── schedule.js      # 定时任务
+├── nlSchedule.js    # 定时任务（toolModules 键为 schedule）
 ├── bltools.js       # 扩展工具集
 ├── reminder.js      # 定时提醒
 ├── imageGen.js      # 绘图服务
@@ -44,38 +44,47 @@ src/mcp/tools/
 ## 工具类别（25个）{#categories}
 
 ::: info 类别说明
-每个类别包含多个相关工具，可按类别整体启用/禁用。
+类别键、模块文件与导出名一一对应 `src/mcp/tools/index.js` 的 `toolModules` 表，
+共 25 类。以下「名称」列取自同文件 `categoryMeta` 的中文显示名；「工具数」为
+当前源码实际导出数量（动态导入统计）。
 :::
 
-| 类别 | 名称 | 说明 | 风险等级 |
-|:-----|:-----|:-----|:--------:|
-| `basic` | 基础工具 | 时间获取、随机数等基础功能 | 🟢 安全 |
-| `user` | 用户信息 | 获取用户信息、好友列表等 | 🟢 安全 |
-| `group` | 群组信息 | 获取群信息、成员列表等 | 🟢 安全 |
-| `message` | 消息操作 | 发送消息、@用户、获取聊天记录、转发消息解析 | 🟡 中等 |
-| `admin` | 群管理 | 禁言、踢人、设置群名片等管理功能 | 🟠 较高 |
-| `groupStats` | 群统计 | 群星级、龙王、发言榜、幸运字符、不活跃成员 | 🟢 安全 |
-| `file` | 文件操作 | 群文件上传下载、本地文件读写、URL下载 | 🟠 较高 |
-| `media` | 媒体处理 | 图片解析、语音处理、二维码生成等 | 🟢 安全 |
-| `web` | 网页访问 | 访问网页、获取内容等 | 🟡 中等 |
-| `search` | 搜索工具 | 网页搜索、Wiki查询、翻译等 | 🟢 安全 |
-| `utils` | 实用工具 | 计算、编码转换、时间处理等 | 🟢 安全 |
-| `memory` | 记忆管理 | 用户记忆的增删改查 | 🟢 安全 |
-| `context` | 上下文管理 | 对话上下文、群聊上下文等 | 🟢 安全 |
-| `bot` | Bot信息 | 获取机器人自身信息、状态、好友列表等 | 🟢 安全 |
-| `voice` | 语音/声聊 | AI语音对话、TTS语音合成、语音识别等 | 🟢 安全 |
-| `extra` | 扩展工具 | 天气查询、一言、骰子、倒计时、提醒、插画 | 🟢 安全 |
-| `shell` | 系统命令 | 执行Shell命令、获取系统信息 | 🔴 **危险** |
-| `schedule` | 定时任务 | 创建、管理定时任务，支持周期执行 | 🟡 中等 |
-| `bltools` | 扩展工具 | QQ音乐、表情包、B站视频、GitHub、AI图片编辑等 | 🟢 安全 |
-| `reminder` | 定时提醒 | 设置定时提醒，支持相对/绝对时间、重复 | 🟢 安全 |
-| `imageGen` | 绘图服务 | AI绘图生成，支持文生图、图生图、文生视频、图生视频 | 🟢 安全 |
-| `qzone` | QQ空间/说说 | 发布说说、获取说说列表、点赞、删除说说、个性签名等 | 🟡 中等 |
-| `emoji` | 表情包管理 | 保存表情包、发送已存表情、列出表情库 | 🟢 安全 |
-| `skills` | Skills 技能管理 | 查看、加载、卸载文档技能，供模型按需启用 skill | 🟢 安全 |
-| `knowledgeGraph` | 知识图谱 | 查询与维护知识图谱（实体、关系、子图），回忆或记录用户/群的结构化知识 | 🟢 安全 |
+| 类别 | 模块文件 | 名称 | 工具数 | 说明 | 风险等级 |
+|:-----|:---------|:-----|:------:|:-----|:--------:|
+| `basic` | `basic.js` | 基础工具 | 9 | 时间/农历/节日、sleep/echo、环境、工具列表、数字格式化 | 🟢 安全 |
+| `user` | `user.js` | 用户信息 | 9 | 用户资料、好友关系、头像、点赞、发送者信息 | 🟢 安全 |
+| `group` | `group.js` | 群组信息 | 10 | 群信息/成员/管理员/公告/搜索 | 🟢 安全 |
+| `message` | `message.js`（messageTools + forwardDataTools） | 消息操作 | 37 | 发消息、@、聊天记录、合并转发、撤回、协议包 | 🟡 中等 |
+| `admin` | `admin.js` | 群管理 | 19 | 禁言、踢人、设群名片/头衔/公告、加群申请、退群 | 🟠 较高 |
+| `groupStats` | `groupStats.js` | 群统计 | 14 | 群星级、龙王、打卡、发言榜、幸运字符、荣誉 | 🟢 安全 |
+| `file` | `file.js` | 文件操作 | 29 | 群文件上传下载、本地文件读写、URL下载、OCR | 🟠 较高 |
+| `web` | `web.js` | 网页访问 | 2 | 动态渲染访问（website）、只读 HTTP（fetch_url） | 🟡 中等 |
+| `memory` | `memory.js` | 记忆管理 | 5 | save/get/search/delete/update_user_memory | 🟢 安全 |
+| `context` | `context.js` | 上下文管理 | 6 | 会话/群聊上下文、回复消息、@列表、清除对话 | 🟢 安全 |
+| `media` | `media.js` | 媒体处理 | 18 | 图片/视频/骰子/音乐/分享/QQ表情/二维码/下载 | 🟢 安全 |
+| `search` | `search.js` | 搜索工具 | 17 | 搜索、百科、翻译、天气、热搜、笑话、油价 | 🟢 安全 |
+| `utils` | `utils.js` | 实用工具 | 25 | 计算、编码、正则、文本处理、密码、抽签 | 🟢 安全 |
+| `bot` | `bot.js` | Bot信息 | 8 | 登录信息、状态、版本、在线客户端、头像、机型 | 🟢 安全 |
+| `voice` | `voice.js` | 语音/声聊 | 16 | AI声聊、TTS、语音识别、语音文件操作 | 🟢 安全 |
+| `extra` | `extra.js` | 扩展工具 | 6 | 一言、骰子、随机选择、短链、IP、插画 | 🟢 安全 |
+| `shell` | `shell.js` | 系统命令 | 4 | 执行命令、系统信息、进程信息、环境变量 | 🔴 **危险** |
+| `schedule` | `nlSchedule.js` | 定时任务 | 3 | 自然语言定时任务（schedule_task 等） | 🟡 中等 |
+| `bltools` | `bltools.js` | 扩展工具 | 11 | QQ音乐、表情包、Bing图片、B站、GitHub、AI图片编辑、思维导图 | 🟢 安全 |
+| `reminder` | `reminder.js` | 定时提醒 | 3 | set/list/cancel_reminder | 🟢 安全 |
+| `imageGen` | `imageGen.js` | 绘图服务 | 5 | 文生图/图生图/视频、预设、状态 | 🟢 安全 |
+| `qzone` | `qzone.js` | QQ空间/说说 | 10 | 说说发布/点赞/删除、签名、戳一戳、收藏 | 🟡 中等 |
+| `emoji` | `emoji.js` | 表情包管理 | 3 | save/send_saved/list_saved_emojis | 🟢 安全 |
+| `skills` | `skills.js` | Skills 技能管理 | 12 | 技能查询/加载/卸载、自定义工具热加载 | 🟢 安全 |
+| `knowledgeGraph` | `knowledgeGraph.js` | 知识图谱 | 12 | 实体/关系/历史/子图/统计（kg_*） | 🟢 安全 |
 
-### 知识图谱工具（kg_*）
+合计 25 类 293 个工具定义（各模块 `name` 字段计数；去重与启用过滤发生在
+`getAllTools` 层）。
+
+### 各类工具名清单（与源码导出逐一对齐）
+
+以下清单按「文件 → 导出 → 工具名」核对，括号内为该类实际导出数量。
+
+#### 知识图谱工具（kg_*，12 个）
 
 `knowledgeGraph` 类别共 12 个工具，统一读写 `kg_entities` / `kg_relationships` 表。
 
@@ -97,6 +106,54 @@ src/mcp/tools/
 `scope_id` 未显式传入时按当前事件上下文推导：群+用户 → `group:<gid>:user:<uid>`；仅群 → `group:<gid>`；仅用户 → `user:<uid>`；无事件 → `global`。实体类型枚举与 `KnowledgeGraphExtractor` 白名单一致（`person` / `thing` / `place` / `concept` / `event`）。
 
 `knowledgeGraph` 为 2026-09 新增类别，既有配置通过「自动启用新增分类」逻辑默认启用。
+
+#### memory.js（5 个，memoryTools）
+
+| 工具名 | description 摘录（以源码为准） |
+|:-------|:-------------------------------|
+| `save_user_memory` | 保存关于用户的重要信息到记忆库 |
+| `get_user_memories` | 获取用户的记忆列表 |
+| `search_user_memory` | 搜索用户记忆，支持多关键词 |
+| `delete_user_memory` | 删除指定的用户记忆（仅当前会话用户） |
+| `update_user_memory` | 更新已有的记忆内容（仅当前会话用户） |
+
+#### group.js（10 个，groupTools）
+
+`get_group_info`、`get_group_list`、`get_group_member_list`、`get_group_member_info`、
+`get_current_group`、`get_group_admins`、`search_group_member`、`get_group_notice`、
+`check_in_group`、`search_group`
+
+#### admin.js（19 个，adminTools）
+
+`mute_member`、`kick_member`、`set_group_card`、`set_group_whole_ban`、`set_group_admin`、
+`set_group_name`、`set_group_special_title`、`send_group_notice`、`delete_group_notice`、
+`set_group_add_request`、`set_friend_add_request`、`get_group_muted_list`、`set_group_leave`、
+`delete_friend`、`set_group_portrait`、`get_group_at_all_remain`、`set_group_anonymous_ban`、
+`set_group_anonymous`、`get_group_system_msg`
+
+#### 其余类别要点（按名称与源码比对）
+
+- `basic`（9）：`get_current_time`、`sleep`、`echo`、`get_environment`、`list_available_tools`、`get_tool_info`、`get_lunar_date`、`get_festival`、`format_number`
+- `user`（9）：`get_user_info`、`get_friend_list`、`send_like`、`get_avatar`、`get_sender_info`、`search_friend`、`check_is_friend`、`get_bot_info`、`get_user_profile`
+- `message`（37，messageTools + forwardDataTools 合并）：`send_to_master`、`get_master_info`、`send_private_message`、`send_group_message`、`reply_current_message`、`at_user`、`at_role`、`random_at`、`get_chat_history`、`recall_message`、`get_forward_msg`、`deep_parse_message`、`send_forward_msg`、`resend_quoted_card`、`mark_msg_as_read`、`get_essence_msg_list`、`set_essence_msg`、`delete_essence_msg`、`poke_user`、`set_msg_emoji_like`、`get_msg`、`send_raw_message`、`send_card`、`send_markdown`、`send_button`、`call_api`、`send_long_msg`、`get_msg_reactions`、`send_long_message`、`send_protocol_packet`、`send_pb_message`、`send_forward_direct`、`make_forward_msg`、`extract_forward_data`、`deserialize_message`、`decode_protobuf`、`get_message_record`
+- `groupStats`（14）：`get_group_level`、`get_dragon_king`、`get_sign_in_today`、`get_speak_rank`、`get_group_data`、`get_lucky_list`、`draw_lucky`、`equip_lucky`、`switch_lucky`、`get_inactive_members`、`get_recent_join_members`、`get_group_honor`、`get_group_stat`、`get_random_group_member`
+- `file`（29）：`get_group_files`、`get_file_url`、`upload_group_file`、`delete_group_file`、`create_group_folder`、`get_group_file_system_info`、`get_group_root_files`、`get_group_files_by_folder`、`move_group_file`、`rename_group_file`、`delete_group_folder`、`upload_private_file`、`get_private_file_url`、`download_file`、`send_file_message`、`get_file`、`ocr_image`、`can_send_record`、`can_send_image`、`read_file`、`write_file`、`list_directory`、`download_to_file`、`download_group_file_to_file`、`delete_file`、`copy_file`、`move_file`、`get_file_info`、`create_directory`
+- `web`（2）：`website`、`fetch_url`
+- `context`（6）：`get_current_context`、`get_conversation_context`、`clear_conversation`、`get_reply_message`、`get_at_members`、`get_group_context`
+- `media`（18）：`parse_image`、`generate_qrcode`、`get_image_info`、`send_image`、`send_video`、`parse_video`、`send_dice`、`send_rps`、`send_music`、`send_location`、`send_share`、`send_face`、`send_mface`、`send_flash_image`、`send_gift`、`get_face_list`、`parse_mface`、`download_image`
+- `search`（17）：`bing_search`、`fetch_webpage`、`web_search`、`search_wiki`、`search_group_history`、`translate`、`get_weather`、`get_ip_info`、`search_baike`、`get_hitokoto`、`get_hot_search`、`get_douyin_hot`、`get_history_today`、`get_joke`、`get_morning_paper`、`get_short_url`、`get_oil_price`
+- `utils`（25）：`calculate`、`random_number`、`random_choice`、`uuid`、`hash`、`base64_encode`、`base64_decode`、`url_encode`、`json_format`、`timestamp`、`countdown`、`regex_match`、`regex_replace`、`text_stats`、`text_transform`、`extract_urls`、`extract_emails`、`extract_phones`、`split_text`、`join_text`、`truncate_text`、`escape_html`、`generate_password`、`dice_roll`、`draw_lots`
+- `bot`（8）：`get_login_info`、`get_bot_status`、`get_stranger_info`、`get_version_info`、`get_online_clients`、`set_qq_avatar`、`get_model_show`、`get_self_info`
+- `voice`（16）：`set_ai_voice_chat`、`get_ai_voice_characters`、`send_ai_voice`、`send_voice`、`parse_voice`、`get_record`、`get_tts_speakers`、`send_tts`、`get_ai_record`、`send_private_ai_record`、`get_voice_info`、`download_voice`、`voice_to_text`、`get_ai_voice_status`、`list_voice_formats`、`send_voice_reply`
+- `extra`（6）：`hitokoto`、`roll_dice`、`random_choose`、`create_short_url`、`query_ip_info`、`get_illustration`
+- `shell`（4）：`execute_command`、`get_system_info`、`get_process_info`、`read_env`
+- `schedule`（3）：`schedule_task`、`cancel_scheduled_task`、`list_my_scheduled_tasks`
+- `bltools`（11）：`search_music_qq`、`search_emoji`、`search_image_bing`、`set_msg_reaction`、`search_wallpaper`、`bilibili_search`、`github_repo_info`、`ai_image_edit`、`bilibili_video_summary`、`video_analysis`、`ai_mindmap`
+- `reminder`（3）：`set_reminder`、`list_reminders`、`cancel_reminder`
+- `imageGen`（5）：`generate_image`、`generate_video`、`list_image_presets`、`use_image_preset`、`get_image_gen_status`
+- `qzone`（10）：`publish_qzone_mood`、`get_qzone_feeds`、`like_qzone_post`、`delete_qzone_mood`、`set_self_longnick`、`friend_poke`、`group_poke`、`get_profile_like`、`create_collection`、`get_collection_list`
+- `emoji`（3）：`save_emoji`、`send_saved_emoji`、`list_saved_emojis`
+- `skills`（12）：`list_skills`、`load_skill`、`get_skill_info`、`list_skill_files`、`read_skill_file`、`search_skills`、`unload_skill`、`reload_skills`、`create_custom_tool`、`update_custom_tool`、`invoke_custom_tool`、`delete_custom_tool`
 
 ::: danger shell 类别警告
 `shell` 类别可执行系统命令，存在安全风险。建议仅在可信环境下启用，并限制为主人权限。
@@ -169,9 +226,13 @@ const categoryMeta = {
 
 ### Step 3：配置启用 {#step-3}
 
+内置工具的启用由 `builtinTools` 配置控制（管理面板 → 工具管理可改，对应
+`GET/PUT /api/tools/builtin/config`）：
+
 ```yaml
 # config.yaml
 builtinTools:
+  enabled: true
   enabledCategories:
     - basic
     - myCategory  # 添加新类别
